@@ -1,0 +1,423 @@
+﻿<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>لعبة المتاهة — محمد & ساره</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:#0d0508;
+  color:#fff;
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  background-image:radial-gradient(ellipse at 50% 0%, rgba(244,63,94,0.08) 0%, transparent 60%),
+    radial-gradient(circle at 20% 80%, rgba(244,63,94,0.04) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(190,24,93,0.03) 0%, transparent 50%);
+}
+h1{
+  font-size:clamp(1.2rem,4vw,1.8rem);
+  font-weight:600;
+  margin-bottom:4px;
+  background:linear-gradient(135deg,#fecdd3,#fda4af,#fb7185);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.subtitle{
+  font-size:clamp(0.65rem,2vw,0.8rem);
+  color:rgba(255,255,255,0.35);
+  letter-spacing:0.15em;
+  margin-bottom:16px;
+  text-align:center;
+}
+canvas{
+  display:block;
+  border-radius:12px;
+  box-shadow:0 0 60px rgba(244,63,94,0.08),0 0 120px rgba(244,63,94,0.04);
+  max-width:98vw;
+  max-height:50vh;
+  width:auto;
+  height:auto;
+}
+#dpad{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:5px;
+  margin-top:10px;
+  touch-action:none;
+}
+.dpad-row{display:flex;gap:6px;justify-content:center}
+.dpad-btn{
+  width:60px;height:60px;
+  border-radius:50%;
+  border:2px solid rgba(244,63,94,0.3);
+  background:rgba(244,63,94,0.12);
+  color:#fda4af;
+  font-size:25px;
+  font-weight:700;
+  cursor:pointer;
+  transition:all 0.12s;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+  box-shadow:0 0 20px rgba(244,63,94,0.08);
+}
+.dpad-btn:active{
+  background:rgba(244,63,94,0.3);
+  border-color:rgba(244,63,94,0.6);
+  transform:scale(0.85);
+  box-shadow:0 0 30px rgba(244,63,94,0.2);
+}
+#backBtn{
+  position:fixed;
+  top:16px;right:16px;
+  width:44px;height:44px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,0.1);
+  background:rgba(0,0,0,0.4);
+  backdrop-filter:blur(8px);
+  color:rgba(255,255,255,0.5);
+  font-size:20px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:all 0.2s;
+  z-index:10;
+  font-family:inherit;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+#backBtn:hover{background:rgba(244,63,94,0.15);border-color:rgba(244,63,94,0.3)}
+#status{
+  margin-top:8px;
+  font-size:0.7rem;
+  color:rgba(255,255,255,0.2);
+  text-align:center;
+}
+#winOverlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(5,2,5,0.9);
+  backdrop-filter:blur(16px);
+  z-index:100;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  padding:24px;
+}
+#winOverlay.show{display:flex}
+#winOverlay .hearts-row{font-size:40px;margin-bottom:10px;animation:winFloat 2s ease-in-out infinite}
+@keyframes winFloat{
+  0%,100%{transform:translateY(0) scale(1)}
+  50%{transform:translateY(-8px) scale(1.1)}
+}
+#winOverlay h2{
+  font-size:clamp(1.3rem,5vw,1.8rem);
+  background:linear-gradient(135deg,#fecdd3,#fb7185,#e11d48);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  margin-bottom:6px;
+}
+#winOverlay .divider{
+  width:60px;height:2px;
+  background:linear-gradient(90deg,transparent,rgba(244,63,94,0.5),transparent);
+  margin:8px auto;
+  border-radius:1px;
+}
+#winOverlay p{
+  font-size:clamp(0.85rem,2.5vw,1rem);
+  color:rgba(255,255,255,0.75);
+  max-width:380px;
+  text-align:center;
+  line-height:1.8;
+  margin:10px 0 16px;
+  font-weight:300;
+}
+#winOverlay .btn-group{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+#winOverlay button{
+  padding:11px 28px;
+  border-radius:10px;
+  border:1px solid rgba(244,63,94,0.25);
+  background:rgba(244,63,94,0.08);
+  color:#fda4af;
+  font-size:0.8rem;
+  cursor:pointer;
+  transition:all 0.3s;
+  font-family:inherit;
+  letter-spacing:0.03em;
+}
+#winOverlay button:hover{
+  background:rgba(244,63,94,0.2);
+  border-color:rgba(244,63,94,0.5);
+}
+#winOverlay button.primary{
+  background:linear-gradient(135deg,rgba(244,63,94,0.25),rgba(190,24,93,0.25));
+  border-color:rgba(244,63,94,0.4);
+  color:#fecdd3;
+}
+#mazeContainer{position:relative}
+@media(max-width:500px){
+  .dpad-btn{width:52px;height:52px;font-size:21px}
+  #backBtn{top:10px;right:10px;width:38px;height:38px;font-size:17px}
+}
+</style>
+</head>
+<body>
+
+<h1>🎮 لعبة المتاهة</h1>
+<p class="subtitle">— وصلي للنهاية عشان توصلي لآخر حاجة فيني —</p>
+
+<div id="mazeContainer">
+  <canvas id="mazeCanvas"></canvas>
+</div>
+
+<div id="status">استخدمي الأزرار أو الأسهم عالتلفون 🎮</div>
+
+<button id="backBtn">←</button>
+
+<div id="dpad">
+  <div class="dpad-row" style="direction:ltr">
+    <button class="dpad-btn" id="btnUp" aria-label="فوق">↑</button>
+  </div>
+  <div class="dpad-row" style="direction:ltr">
+    <button class="dpad-btn" id="btnLeft" aria-label="شمال">←</button>
+    <button class="dpad-btn" id="btnDown" aria-label="تحت">↓</button>
+    <button class="dpad-btn" id="btnRight" aria-label="يمين">→</button>
+  </div>
+</div>
+
+<div id="winOverlay">
+  <div class="hearts-row">🤍 ✨ 🤍</div>
+  <h2>وصلتي 🤍</h2>
+  <div class="divider"></div>
+  <p>عارف إن المتاهة كانت سهلة عليك، واللي كان صعب هو إني أعرف أقول الكلام ده من زمان وأقوله في مكان ما حدش تاني سامعه.</p>
+  <p>أنا مش عارف إنتي حاسة بيه ولا لأ. ومش هسأل، ومش مستني إجابة. بس عايز أقوله مرة واحدة: شكرًا إنك موجودة. شكرًا إنك كده. شكرًا إنك أمان، وإن كل اللي حواليكي مش فاهمين قد إيه ده.</p>
+  <p>ولو في يوم احتاجتِ حد يفهمك من غير ما تشرحي — أنا هنا. مش هزهق، ومش همل، ومش هسيب. إنتي وصلتِ، وده أحسن خدعة عملتها في حياتي.</p>
+  <button id="exitGameBtn" class="mt-8 inline-flex items-center gap-3 px-8 py-3 rounded-xl text-sm tracking-wider transition-all duration-500 group bg-gradient-to-b from-[#1f0a12] to-[#0d0508] border border-rose-500/20 hover:border-rose-400/50 text-rose-300 hover:text-rose-200" style="transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-log-out w-4 h-4 group-hover:-translate-x-0.5 transition-transform"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" x2="9" y1="12" y2="12"></line></svg>
+    اخرجي من اللعبة
+  </button>
+</div>
+
+<script>
+const canvas = document.getElementById('mazeCanvas');
+const ctx = canvas.getContext('2d');
+const statusEl = document.getElementById('status');
+const winOverlay = document.getElementById('winOverlay');
+
+const COLS = 21;
+const ROWS = 17;
+let CELL_SIZE;
+let maze = [];
+let player = {x:1, y:1};
+let gameWon = false;
+let animationId = null;
+
+function generateMaze(){
+  maze = Array.from({length:ROWS}, () => Array(COLS).fill(1));
+  const stack = [{x:1, y:1}];
+  maze[1][1] = 0;
+  while(stack.length > 0){
+    const cur = stack[stack.length-1];
+    const neighbors = [];
+    const dirs = [[0,-2],[0,2],[-2,0],[2,0]];
+    for(const [dx,dy] of dirs){
+      const nx = cur.x + dx;
+      const ny = cur.y + dy;
+      if(nx > 0 && nx < COLS-1 && ny > 0 && ny < ROWS-1 && maze[ny][nx] === 1){
+        neighbors.push({x:nx, y:ny, wx:cur.x+dx/2, wy:cur.y+dy/2});
+      }
+    }
+    if(neighbors.length > 0){
+      const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+      maze[next.wy][next.wx] = 0;
+      maze[next.y][next.x] = 0;
+      stack.push({x:next.x, y:next.y});
+    } else {
+      stack.pop();
+    }
+  }
+  maze[ROWS-2][COLS-2] = 0;
+}
+
+function resizeCanvas(){
+  const maxW = Math.min(window.innerWidth * 0.95, 600);
+  const maxH = window.innerHeight * 0.52;
+  const cellW = Math.floor(maxW / COLS);
+  const cellH = Math.floor(maxH / ROWS);
+  CELL_SIZE = Math.max(Math.min(cellW, cellH, 36), 14);
+  canvas.width = COLS * CELL_SIZE;
+  canvas.height = ROWS * CELL_SIZE;
+}
+
+function drawMaze(){
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for(let y = 0; y < ROWS; y++){
+    for(let x = 0; x < COLS; x++){
+      if(maze[y][x] === 1){
+        ctx.fillStyle = 'rgba(255,255,255,0.06)';
+        ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        ctx.strokeStyle = 'rgba(244,63,94,0.08)';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+      }
+    }
+  }
+  // End point
+  ctx.fillStyle = 'rgba(251,113,133,0.25)';
+  ctx.shadowColor = 'rgba(244,63,94,0.2)';
+  ctx.shadowBlur = 12;
+  ctx.beginPath();
+  ctx.arc((COLS-2)*CELL_SIZE + CELL_SIZE/2, (ROWS-2)*CELL_SIZE + CELL_SIZE/2, CELL_SIZE*0.32, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  // Heart icon at end
+  ctx.font = `${CELL_SIZE*0.4}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(251,113,133,0.5)';
+  ctx.fillText('💕', (COLS-2)*CELL_SIZE + CELL_SIZE/2, (ROWS-2)*CELL_SIZE + CELL_SIZE/2);
+  // Player
+  const px = player.x * CELL_SIZE + CELL_SIZE/2;
+  const py = player.y * CELL_SIZE + CELL_SIZE/2;
+  ctx.shadowColor = 'rgba(244,63,94,0.4)';
+  ctx.shadowBlur = 16;
+  const grad = ctx.createRadialGradient(px-2, py-2, 0, px, py, CELL_SIZE*0.4);
+  grad.addColorStop(0, '#fda4af');
+  grad.addColorStop(0.6, '#fb7185');
+  grad.addColorStop(1, '#e11d48');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(px, py, CELL_SIZE*0.33, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  // Hearts floating around player
+  if(!gameWon){
+    const t = Date.now() / 1000;
+    for(let i=0; i<3; i++){
+      const offsetX = Math.sin(t + i*2) * CELL_SIZE*0.25;
+      const offsetY = Math.cos(t*0.7 + i*1.5) * CELL_SIZE*0.2 - 2;
+      ctx.font = `${CELL_SIZE*0.2}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.globalAlpha = 0.3 + Math.sin(t + i)*0.15;
+      ctx.fillText('💕', px + offsetX, py + offsetY);
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
+function movePlayer(dx, dy){
+  if(gameWon) return;
+  const nx = player.x + dx;
+  const ny = player.y + dy;
+  if(nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) return;
+  if(maze[ny][nx] === 1) return;
+  player.x = nx;
+  player.y = ny;
+  drawMaze();
+  if(nx === COLS-2 && ny === ROWS-2){
+    gameWon = true;
+    setTimeout(showWin, 300);
+  }
+}
+
+function showWin(){
+  winOverlay.classList.add('show');
+}
+
+function closeWin(){
+  winOverlay.classList.remove('show');
+}
+
+function resetGame(){
+  player = {x:1, y:1};
+  gameWon = false;
+  generateMaze();
+  resizeCanvas();
+  drawMaze();
+  winOverlay.classList.remove('show');
+}
+
+// Keyboard
+document.addEventListener('keydown', (e) => {
+  switch(e.key){
+    case 'ArrowUp': e.preventDefault(); movePlayer(0, -1); break;
+    case 'ArrowDown': e.preventDefault(); movePlayer(0, 1); break;
+    case 'ArrowLeft': e.preventDefault(); movePlayer(-1, 0); break;
+    case 'ArrowRight': e.preventDefault(); movePlayer(1, 0); break;
+  }
+});
+
+// Touch controls
+document.getElementById('btnUp').addEventListener('click', () => movePlayer(0, -1));
+document.getElementById('btnDown').addEventListener('click', () => movePlayer(0, 1));
+document.getElementById('btnLeft').addEventListener('click', () => movePlayer(-1, 0));
+document.getElementById('btnRight').addEventListener('click', () => movePlayer(1, 0));
+
+// Touch swipe on canvas
+let touchStartX, touchStartY;
+canvas.addEventListener('touchstart', (e) => {
+  const t = e.touches[0];
+  touchStartX = t.clientX;
+  touchStartY = t.clientY;
+}, {passive: true});
+canvas.addEventListener('touchend', (e) => {
+  if(!touchStartX || !touchStartY) return;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  const adx = Math.abs(dx), ady = Math.abs(dy);
+  if(Math.max(adx, ady) < 10) return;
+  if(adx > ady){
+    movePlayer(dx > 0 ? 1 : -1, 0);
+  } else {
+    movePlayer(0, dy > 0 ? 1 : -1);
+  }
+  touchStartX = null;
+}, {passive: true});
+
+// Resize handler
+let resizeTimeout;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(() => {
+    resizeCanvas();
+    drawMaze();
+  }, 200);
+});
+
+// Back to main site
+function goBack(){
+  if(window.opener){
+    const el=window.opener.document.getElementById('maze-game');
+    if(el)el.scrollIntoView({behavior:'smooth'});
+    window.close();
+  } else {
+    window.location.href = '/';
+  }
+}
+
+// Event listeners (robust, no inline onclick)
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('backBtn').addEventListener('click', goBack);
+  document.getElementById('exitGameBtn').addEventListener('click', goBack);
+});
+
+// Init
+resetGame();
+</script>
+</body>
+</html>

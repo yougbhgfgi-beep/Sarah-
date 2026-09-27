@@ -1,0 +1,11 @@
+node_modules/
+_temp_*
+*.log
+.DS_Store
+Thumbs.db
+
+# old media kept locally only - never deployed, never committed
+_archive/
+
+# backups written by tools/patch-strings.mjs and tools/sync-bundle-defaults.mjs
+*.bak

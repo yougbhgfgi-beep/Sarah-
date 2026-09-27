@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <title>ساره 🤍 | كلام من محمد</title>
+    <meta
+      name="description"
+      content="مش كلام حب — كلام احترام. عن حد شافك صح، وفهمك صح، ومحترمك بجد."
+    />
+
+    <!-- ===== share preview ===== -->
+    <meta property="og:title" content="ساره 🤍 — كلام من محمد" />
+    <meta
+      property="og:description"
+      content="مش كلام حب — كلام احترام. عن حد شافك صح، وفهمك صح، ومحترمك بجد."
+    />
+    <meta property="og:image" content="https://yougbhgfgi-beep.github.io/Sarah-/images/sara-1.jpg" />
+    <meta property="og:image:width" content="1080" />
+    <meta property="og:image:height" content="1350" />
+    <meta property="og:image:alt" content="ساره" />
+    <meta property="og:url" content="https://yougbhgfgi-beep.github.io/Sarah-/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ساره" />
+    <meta property="og:locale" content="ar_AR" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ساره 🤍 — كلام من محمد" />
+    <meta
+      name="twitter:description"
+      content="مش كلام حب — كلام احترام. عن حد شافك صح، وفهمك صح، ومحترمك بجد."
+    />
+    <meta name="twitter:image" content="https://yougbhgfgi-beep.github.io/Sarah-/images/sara-1.jpg" />
+
+    <!-- ===== install as an app (android + ios) ===== -->
+    <link rel="manifest" href="./manifest.json" />
+    <meta name="theme-color" content="#f43f5e" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./images/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./images/icon-192.png" />
+    <link rel="apple-touch-icon" href="./images/apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="ساره" />
+    <meta name="application-name" content="ساره" />
+
+    <!-- the site is dark everywhere: tell the browser before it paints, so the
+         standalone app never flashes white on launch and ios renders dark
+         scrollbars / form controls -->
+    <meta name="color-scheme" content="dark" />
+    <style>
+      html {
+        background: #0d0508;
+      }
+      body {
+        margin: 0;
+        background: #0d0508;
+      }
+    </style>
+
+    <!-- ===== fonts ===== -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&family=Cairo:wght@300;400;600;700&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- ===== preload the heavy stuff so the intro starts instantly ===== -->
+    <!-- the video and the first photo are cheap enough to always preload.
+         the song is 7.7 MB, so it is NOT preloaded by default - see below. -->
+    <link rel="preload" href="./media/video.mp4" as="video" type="video/mp4" />
+    <link rel="preload" href="./images/sara-1.jpg" as="image" />
+
+    <!-- Start fetching the song early on a good connection, so the music button
+         is instant later. But never on a metered or slow connection, and never
+         when the visitor asked to save data - the song cannot be played before
+         they press the button anyway, so there is no reason to spend their data. -->
+    <script>
+      (function () {
+        var c = navigator.connection;
+        if (c && (c.saveData || /^(slow-2g|2g|3g)$/.test(c.effectiveType || ""))) return;
+        var l = document.createElement("link");
+        l.rel = "preload";
+        l.as = "audio";
+        l.type = "audio/mpeg";
+        l.href = "./media/audio/khalini.mp3";
+        document.head.appendChild(l);
+      })();
+    </script>
+
+    <!-- ===== app ===== -->
+    <script src="./config.js?v=8.1.2"></script>
+    <script src="./install.js?v=8.1.2" defer></script>
+    <script type="module" crossorigin src="./assets/app.js?v=8.1.2"></script>
+    <link rel="stylesheet" crossorigin href="./assets/app.css?v=8.1.2" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <p style="color: #fecdd3; font-family: sans-serif; padding: 2rem; text-align: center">
+        الموقع ده محتاج JavaScript عشان يشتغل. من فضلك فعّله في المتصفح.
+      </p>
+    </noscript>
+  </body>
+</html>

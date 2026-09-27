@@ -1,0 +1,31 @@
+{
+  "name": "sara",
+  "version": "8.0.1",
+  "private": true,
+  "description": "كلام من محمد لساره — موقع ثابت (HTML + React bundle + PWA)",
+  "type": "module",
+  "scripts": {
+    "dev": "npx --yes serve . -l 5173",
+    "version:bump": "node tools/bump-version.mjs patch",
+    "version:bump:minor": "node tools/bump-version.mjs minor",
+    "version:bump:major": "node tools/bump-version.mjs major",
+    "check": "node --check assets/app.js && node --check config.js && node --check sw.js && node --check install.js",
+    "icons": "node tools/make-icons.mjs",
+    "patch": "node tools/patch-strings.mjs",
+    "sync:bundle": "node tools/sync-bundle-defaults.mjs",
+    "audit": "node tools/audit-content.mjs",
+    "strings": "node tools/list-strings.mjs",
+    "probe:audio": "node tools/probe-audio.mjs",
+    "deploy:url": "node tools/set-deploy-url.mjs",
+    "verify": "node tools/verify-config.mjs",
+    "test": "npm run check && npm run audit && npm run verify && npm run test:boot",
+    "test:boot": "node tools/boot-test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1",
+    "sharp": "^0.35.5"
+  }
+}
