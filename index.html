@@ -57,14 +57,17 @@
         background: #0d0508;
       }
 
-      /* حجم خط الرسالة (رسالة الظرف).
-         غيّر الرقمين دول وهيتظبط في الموبايل والكمبيوتر. */
+      /* الرسالة جوه المظروف — المقاس بيتظبط من هنا بس.
+         دلوقتي محتواها قلب واحد، فمقاسها كبير ومتحطّط في نص.
+         لو رجعت كتبت كلام هنا، رجّع الرقمين لـ 15px و 16px. */
       .letter-body {
-        font-size: 15px;
+        font-size: clamp(4rem, 22vw, 7rem);
+        line-height: 1;
+        text-align: center;
       }
       @media (min-width: 640px) {
         .letter-body {
-          font-size: 16px;
+          font-size: clamp(5rem, 12vw, 8rem);
         }
       }
     </style>
@@ -101,10 +104,10 @@
     </script>
 
     <!-- ===== app ===== -->
-    <script src="./config.js?v=8.1.4"></script>
-    <script src="./install.js?v=8.1.4" defer></script>
-    <script type="module" crossorigin src="./assets/app.js?v=8.1.4"></script>
-    <link rel="stylesheet" crossorigin href="./assets/app.css?v=8.1.4" />
+    <script src="./config.js?v=8.1.5"></script>
+    <script src="./install.js?v=8.1.5" defer></script>
+    <script type="module" crossorigin src="./assets/app.js?v=8.1.5"></script>
+    <link rel="stylesheet" crossorigin href="./assets/app.css?v=8.1.5" />
   </head>
   <body>
     <div id="root"></div>
