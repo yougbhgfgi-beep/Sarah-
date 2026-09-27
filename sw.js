@@ -2,7 +2,7 @@
    Service Worker — متغيّرش رقم النسخة بإيدك، شغّل:  npm run version:bump
    ===================================================================== */
 
-const APP_VERSION = 'v8.1.6';
+const APP_VERSION = 'v8.1.7';
 const CACHE_NAME = `love-story-cache-${APP_VERSION}`;
 
 /* مسارات نسبية (مش /images) عشان تشتغل صح على GitHub Pages
