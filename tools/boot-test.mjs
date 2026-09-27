@@ -216,9 +216,24 @@ const check = (name, ok) => results.push([name, ok]);
     check('gallery images from config.js', window.document.querySelectorAll('img[src*="sara-"]').length === 4);
     check('milestones from config.js', t.includes(D.milestones.title));
     check('milestones note from config.js', t.includes(D.milestones.note));
-    check('footer text from config.js', t.includes(D.main.footerText));
+    /* a blank value must collapse the <p>, not just make `includes("")` true */
+    check('footer line matches config.js exactly',
+      D.main.footerText.trim() === ''
+        ? window.document.querySelector('p.max-w-xs.mx-auto.mb-6') === null
+        : t.includes(D.main.footerText));
     check('header brand from config.js', t.includes(D.ui.brand));
     check('counter notes from config.js', t.includes(D.ui.timerNote[0]));
+
+    /* One invariant instead of a rule per screen. Several sections render an
+       optional subtitle <p> (envelope, gallery, video, timer, milestones), and
+       blanking the string in config.js used to leave the margin behind as a
+       visible hole. Whatever the section, an empty <p> on screen is a bug. */
+    const emptyPs = [...window.document.querySelectorAll('p')]
+      .filter((p) => p.textContent.trim().length === 0);
+    check('no empty <p> is left on screen', emptyPs.length === 0);
+    if (emptyPs.length > 0) {
+      for (const p of emptyPs) console.log(`    empty: <p class="${p.className}">`);
+    }
     check('maze section from config.js', t.includes(D.ui.mazeEyebrow) && t.includes(D.ui.mazeButton));
     check('counter units from config.js', t.includes(D.ui.timeUnits[0]) && t.includes(D.ui.timeUnits[3]));
     check('no love-confession wording on screen',

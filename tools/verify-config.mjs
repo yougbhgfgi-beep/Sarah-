@@ -114,7 +114,16 @@ const checks = [
      letter can never turn this into a test that fails for no reason */
   ['ending message came through the merge intact',
     defaults.ending.message === override.ending.message],
-  ['milestones events intact', defaults.milestones.events.length === 4],
+  /* structural, not a count: the timeline is a field the user edits freely
+     (entries get added and removed), so pinning a length here would fail
+     the suite every time he changes the content. what the component
+     actually needs is that every entry still has the three keys it reads. */
+  ['milestones events are well-formed',
+    Array.isArray(defaults.milestones.events) &&
+    defaults.milestones.events.length >= 2 &&
+    defaults.milestones.events.every(
+      (e) => e && e.date?.trim() && e.label?.trim() && e.description?.trim()
+    )],
   ['password is read from config.js', defaults.login.password === 'love'],
 
   /* the ui section feeds text that used to be hardcoded in components —

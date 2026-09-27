@@ -36,6 +36,29 @@ const MONTH = '1e3*60*60*24*30.4375';
 
 const PATCHES = [
   {
+    /* the closing line above the "اقفلها" button. it is optional, and a
+       blank string must collapse instead of leaving an `mb-6` hole.
+       note the children is `l.footerText` here, not `t` — this one lives in
+       the main component, where the config was destructured into `l`. */
+    what: 'footer: a blank closing line must not create the <p> at all',
+    /* the <p> is the FIRST child of the footer's children array, so it is
+       preceded by `[` and not by `,` — matching on the comma finds nothing. */
+    find:
+      '[i.jsx("p",{className:"text-rose-200/70 font-light text-sm max-w-xs mx-auto mb-6 relative z-10",children:l.footerText})',
+    replace:
+      '[l.footerText&&i.jsx("p",{className:"text-rose-200/70 font-light text-sm max-w-xs mx-auto mb-6 relative z-10",children:l.footerText})',
+  },
+  {
+    /* same rule as the envelope, for the section header (gallery / video /
+       timer / milestones all share this component). blanking any section's
+       subtitle must not leave the `mt-1` hole under its title. */
+    what: 'section header: a blank subtitle must not create the <p> at all',
+    find:
+      ',i.jsx("p",{className:"text-rose-400/50 text-xs mt-1 font-light tracking-wide",children:t})',
+    replace:
+      ',t&&i.jsx("p",{className:"text-rose-400/50 text-xs mt-1 font-light tracking-wide",children:t})',
+  },
+  {
     /* `children:t||null` is NOT enough: React still creates the <p> element,
        it just has no children, so the `mt-3` margin still reserves the gap.
        the element itself has to be conditional. `t&&i.jsx(...)` evaluates to
