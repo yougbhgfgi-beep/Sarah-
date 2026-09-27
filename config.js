@@ -153,9 +153,9 @@ window.APP_CONFIG = {
     footerTag: "🤍 من محمد — لسه فخور",
   },
 
-  /* زر المشاركة / اللينك */
+  /* زر المشاركة — اللينك اللي بتشاركيه */
   share: {
-    url: "https://love.link/mhmd-ysm",
+    url: "https://yougbhgfgi-beep.github.io/Sarah-/",
     label: "رابط قصير",
     message:
       "ده موقع محمد — عن شخص فخور بيها جدًا، وبصراحة إنه مش مستني حاجة مقابلها 🤍",

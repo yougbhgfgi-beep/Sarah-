@@ -9,3 +9,9 @@ _archive/
 
 # backups written by tools/patch-strings.mjs and tools/sync-bundle-defaults.mjs
 *.bak
+
+# AI working instructions - local only, not part of the site
+AGENTS.md
+
+# the original 320kbps source of khalini.mp3 (gitignored backup)
+_archive/khalini-320k.mp3
