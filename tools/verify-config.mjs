@@ -55,6 +55,51 @@ mergeFn(defaults, override);
 // vm realm, and cross-realm instanceof is always false.
 const isDate = (v) => Object.prototype.toString.call(v) === '[object Date]';
 
+/** every string in the merged config, flattened, so a check can scan them all */
+function allCopy(value) {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) return value.map(allCopy).join('\n');
+  if (value && typeof value === 'object' && !isDate(value)) {
+    return Object.values(value).map(allCopy).join('\n');
+  }
+  return '';
+}
+
+/**
+ * The site is written to exactly one reader: a woman. These tokens are
+ * unambiguously masculine *second person* — the exact way a masculine line
+ * sneaks into copy that is otherwise feminine. Note the pairs: انت/إنتي,
+ * ادخل/ادخلي, اكتب/اكتبي, افتح/افتحي, اقرا/اقري, and — the one that is easy
+ * to get backwards in colloquial Arabic — يستاهل/تستاهل.
+ *
+ * The boundary lookarounds use the Arabic letter range, not \b, because \b is
+ * defined on ASCII word characters and would not fire between two Arabic
+ * letters. That is what keeps "إنتي" and "تستاهلي" from matching.
+ */
+const MASCULINE_SECOND_PERSON =
+  /(?<![ء-ي])(انت|إنت|ادخل|اكتب|افتح|اضغط|اقرا|أقرأ|يستاهل)(?![ء-ي])/g;
+const masculineHits = (copy) => [...new Set(copy.match(MASCULINE_SECOND_PERSON) || [])];
+
+/** and where they are, so a failure names the line instead of just the rule */
+function masculineReport(value, path = '') {
+  if (typeof value === 'string') {
+    const hits = masculineHits(value);
+    return hits.length ? [`${path} → ${hits.join(' / ')}`] : [];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap((v, i) => masculineReport(v, `${path}[${i}]`));
+  }
+  if (value && typeof value === 'object' && !isDate(value)) {
+    return Object.entries(value).flatMap(([k, v]) => masculineReport(v, path ? `${path}.${k}` : k));
+  }
+  return [];
+}
+const masculineHitList = masculineReport(defaults);
+if (masculineHitList.length) {
+  console.log('  masculine wording, one day after the edit:');
+  for (const line of masculineHitList) console.log('    ' + line);
+}
+
 const checks = [
   ['dates stay Date objects', isDate(defaults.anniversaryDate)],
   ['date value preserved', defaults.anniversaryDate.getFullYear() === 2026],
@@ -65,7 +110,10 @@ const checks = [
   ['gallery array replaced as a unit', Array.isArray(defaults.gallery) && defaults.gallery.length === 4],
   ['gallery images resolve to real files',
     defaults.gallery.every((g) => read('.' + g.src.replace('./', '/')) !== undefined)],
-  ['ending message preserved', defaults.ending.message.includes('الكلام الكبير لازم يتقفل')],
+  /* compared against config.js rather than a literal, so rewriting the
+     letter can never turn this into a test that fails for no reason */
+  ['ending message came through the merge intact',
+    defaults.ending.message === override.ending.message],
   ['milestones events intact', defaults.milestones.events.length === 4],
   ['password is read from config.js', defaults.login.password === 'love'],
 
@@ -89,6 +137,13 @@ const checks = [
       typeof defaults.login?.caption === 'string'],
   ['no love-confession wording anywhere in the config',
     !/بحبك|أحبك|حبيبك|حبيبتي|عشيق/.test(JSON.stringify(defaults))],
+
+  /* ---- everything on this site is addressed to one person: a woman ----
+     the tokens are unambiguously masculine second-person forms. "انت",
+     "ادخل", "اكتب" and friends are the exact way a masculine line sneaks
+     into copy that is otherwise feminine — so they are banned outright. */
+  ['every line addressed to her is feminine',
+    masculineHitList.length === 0],
 ];
 
 /* ---------- 6. the exact expressions the bundle evaluates ----------

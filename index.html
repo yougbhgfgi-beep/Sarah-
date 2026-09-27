@@ -56,6 +56,17 @@
         margin: 0;
         background: #0d0508;
       }
+
+      /* حجم خط الرسالة (رسالة الظرف).
+         غيّر الرقمين دول وهيتظبط في الموبايل والكمبيوتر. */
+      .letter-body {
+        font-size: 15px;
+      }
+      @media (min-width: 640px) {
+        .letter-body {
+          font-size: 16px;
+        }
+      }
     </style>
 
     <!-- ===== fonts ===== -->
@@ -90,10 +101,10 @@
     </script>
 
     <!-- ===== app ===== -->
-    <script src="./config.js?v=8.1.3"></script>
-    <script src="./install.js?v=8.1.3" defer></script>
-    <script type="module" crossorigin src="./assets/app.js?v=8.1.3"></script>
-    <link rel="stylesheet" crossorigin href="./assets/app.css?v=8.1.3" />
+    <script src="./config.js?v=8.1.4"></script>
+    <script src="./install.js?v=8.1.4" defer></script>
+    <script type="module" crossorigin src="./assets/app.js?v=8.1.4"></script>
+    <link rel="stylesheet" crossorigin href="./assets/app.css?v=8.1.4" />
   </head>
   <body>
     <div id="root"></div>

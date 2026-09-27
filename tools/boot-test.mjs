@@ -35,6 +35,16 @@ function bundleDefaults() {
 }
 const DEFAULTS = bundleDefaults();
 
+/**
+ * every on-screen expectation below is derived from these paths, never typed
+ * out by hand. the whole point of this suite is that rewriting the Arabic in
+ * config.js can only change the site — it must never be able to fail a test,
+ * and a test can never quietly pass against stale copy.
+ */
+const D = DEFAULTS;
+/** the first sentence of a multi-line copy block, for "has it appeared yet?" */
+const firstLine = (s) => String(s).split('\n')[0].trim();
+
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** poll until `fn(window)` is truthy — jsdom timing is not reliable with fixed waits */
@@ -112,12 +122,12 @@ const check = (name, ok) => results.push([name, ok]);
 /* ---------- 1. clean boot ---------- */
 {
   const { window, errors } = boot();
-  await waitFor(window, has(window, 'ادخلي'), 'login screen');
+  await waitFor(window, has(window, D.login.title), 'login screen');
 
   check('boots with zero runtime errors', errors.length === 0);
   check('React mounted (#root populated)', window.document.getElementById('root').children.length > 0);
-  check('login screen rendered', text(window).includes('ادخلي'));
-  check('login text comes from config.js', text(window).includes('الموقع ده خاص'));
+  check('login screen rendered', text(window).includes(D.login.title));
+  check('login text comes from config.js', text(window).includes(D.login.subtitle));
 
   const audio = q(window, 'audio');
   check('audio wired to the mp3', !!audio && audio.getAttribute('src') === './media/audio/khalini.mp3');
@@ -131,9 +141,31 @@ const check = (name, ok) => results.push([name, ok]);
     await wait(150);
     const form = q(window, 'form') || input.closest('form') || input.parentElement;
     form.dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
-    await waitFor(window, has(window, 'كلام محفوظ من زمان'), 'envelope after login');
-    check('correct password unlocks the site', text(window).includes('كلام محفوظ من زمان'));
-    check('envelope title from config.js', text(window).includes('مش عارف أبدأ منين'));
+    await waitFor(window, has(window, D.envelope.title), 'envelope after login');
+    check('correct password unlocks the site', text(window).includes(D.envelope.title));
+    check('envelope title from config.js', text(window).includes(D.envelope.title));
+
+    /* A subtitle is optional. The invariant is not "the string is there" but
+       "the <p> only exists when there is something to say" — a blank
+       subtitle used to leave a 12px hole between the title rule and the
+       button. So: no subtitle <p> may ever be empty. */
+    const subPs = [...window.document.querySelectorAll('p')].filter(
+      (p) => typeof p.className === 'string' && /(^|\s)mt-3(\s|$)/.test(p.className) && p.className.includes('text-xs')
+    );
+    /* blank subtitle -> the <p> must not exist at all.
+       filled subtitle -> exactly one <p>, holding exactly that string. */
+    const wanted = D.envelope.subtitle.trim();
+    const okSubtitle =
+      wanted === ''
+        ? subPs.length === 0
+        : subPs.length === 1 && subPs[0].textContent === D.envelope.subtitle;
+    check('the envelope subtitle <p> matches config.js exactly', okSubtitle);
+    if (!okSubtitle) {
+      console.log(`    subtitle in config: ${JSON.stringify(D.envelope.subtitle)}`);
+      for (const p of subPs) {
+        console.log(`    <p class="${p.className}"> ${JSON.stringify(p.textContent)}`);
+      }
+    }
   }
 
   /* ---------- 3. sealed envelope -> letter -> hero ---------- */
@@ -141,7 +173,7 @@ const check = (name, ok) => results.push([name, ok]);
   // the message and the "open" button. walk both, sampling the DOM as we go.
   const seal = [...window.document.querySelectorAll('div')]
     .filter((d) => typeof d.className === 'string' && d.className.includes('cursor-pointer'))
-    .filter((d) => d.textContent.includes('كلام محفوظ من زمان'))
+    .filter((d) => d.textContent.includes(D.envelope.title))
     .sort((a, b) => a.textContent.length - b.textContent.length)[0];
 
   if (!seal) {
@@ -151,41 +183,50 @@ const check = (name, ok) => results.push([name, ok]);
     const sampler = setInterval(() => seen.add(text(window)), 60);
 
     seal.dispatchEvent(new window.Event('click', { bubbles: true }));
-    await waitFor(window, has(window, 'قعدت ساعات بحاول'), 'letter text');
-    check('envelope message revealed from config.js', text(window).includes('قعدت ساعات بحاول'));
-    check('letter heading from config.js', text(window).includes('الكلام ده ليكي'));
-    check('letter sign-off from config.js', text(window).includes('مش طالب حاجة'));
+    await waitFor(window, has(window, firstLine(D.envelope.message)), 'letter text');
+    check('envelope message revealed from config.js', text(window).includes(firstLine(D.envelope.message)));
+    check('letter heading from config.js', text(window).includes(D.envelope.letterTitle));
+    check('letter sign-off from config.js', text(window).includes(D.envelope.letterNote));
+
+    /* the size of the letter text is a CSS knob in index.html (.letter-body),
+       not a Tailwind class, so assert the class survives in the DOM. */
+    check('letter text uses the .letter-body size knob',
+      !!q(window, 'p.letter-body'));
 
     const openBtn = [...window.document.querySelectorAll('button')].find((b) =>
-      b.textContent.includes('افتحي الكلام ده')
+      b.textContent.includes(D.envelope.buttonText)
     );
     if (!openBtn) {
       check('open button present', false);
     } else {
       openBtn.click();
-      await waitFor(window, has(window, 'ده مش عن الحب'), 'hero');
+      await waitFor(window, has(window, D.main.heroSubtitle), 'hero');
     }
     clearInterval(sampler);
     seen.add(text(window));
     const t = text(window);
 
-    check('hero shows the couple names', t.includes('محمد') && t.includes('ساره'));
-    check('hero subtitle from config.js', t.includes('ده مش عن الحب'));
-    check('gallery title from config.js', t.includes('من راحتك'));
+    /* NB: the hero does NOT render main.heroTitle. it composes the two names
+       from couple.his / couple.hers into separate spans, so the string
+       "محمد & ساره" never appears in the DOM. assert the real thing. */
+    check('hero shows both names from couple.his / couple.hers',
+      t.includes(D.couple.his) && t.includes(D.couple.hers));
+    check('hero subtitle from config.js', t.includes(D.main.heroSubtitle));
+    check('gallery title from config.js', t.includes(D.main.galleryTitle));
     check('gallery images from config.js', window.document.querySelectorAll('img[src*="sara-"]').length === 4);
-    check('milestones from config.js', t.includes('حاجات اتغيّرت فيا'));
-    check('milestones note from config.js', t.includes('وتفضل الحكاية بتزيد'));
-    check('footer text from config.js', t.includes('كان يستاهل يتكتب'));
-    check('header brand from config.js', t.includes('من محمد'));
-    check('counter notes from config.js', t.includes('من يوم ماعرفتها'));
-    check('maze section from config.js', t.includes('حاجة اتعلّمتها منها') && t.includes('العب المتاهة'));
-    check('counter units from config.js', t.includes('سنوات') && t.includes('دقائق'));
+    check('milestones from config.js', t.includes(D.milestones.title));
+    check('milestones note from config.js', t.includes(D.milestones.note));
+    check('footer text from config.js', t.includes(D.main.footerText));
+    check('header brand from config.js', t.includes(D.ui.brand));
+    check('counter notes from config.js', t.includes(D.ui.timerNote[0]));
+    check('maze section from config.js', t.includes(D.ui.mazeEyebrow) && t.includes(D.ui.mazeButton));
+    check('counter units from config.js', t.includes(D.ui.timeUnits[0]) && t.includes(D.ui.timeUnits[3]));
     check('no love-confession wording on screen',
       !/بحبك|حبيبك|حبيبتي|أحبك|عشيق/.test([...seen].join('\n')));
 
     const video = q(window, 'video');
     check('video falls back to media/video.mp4', !!video && video.getAttribute('src') === './media/video.mp4');
-    check('the full walk reached the hero', [...seen].join('\n').includes('ده مش عن الحب'));
+    check('the full walk reached the hero', [...seen].join('\n').includes(D.main.heroSubtitle));
   }
 
   if (errors.length) console.log('errors:\n' + errors.join('\n---\n'));
@@ -198,7 +239,7 @@ const check = (name, ok) => results.push([name, ok]);
   // so DEFAULTS.login.subtitle is the exact string to look for here.
   const probe = CFG.replace(DEFAULTS.login.subtitle, 'PROBE-OVERRIDE-123');
   const { window, errors } = boot(probe);
-  await waitFor(window, has(window, 'ادخلي'), 'login screen (probe)');
+  await waitFor(window, has(window, D.login.title), 'login screen (probe)');
   check('config.js actually executed', typeof window.APP_CONFIG === 'object');
   check('the probe really changed config.js', probe !== CFG);
   check(

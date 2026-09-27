@@ -12,6 +12,7 @@
     "check": "node --check assets/app.js && node --check config.js && node --check sw.js && node --check install.js",
     "icons": "node tools/make-icons.mjs",
     "patch": "node tools/patch-strings.mjs",
+    "patch:structure": "node tools/patch-structure.mjs",
     "sync:bundle": "node tools/sync-bundle-defaults.mjs",
     "audit": "node tools/audit-content.mjs",
     "strings": "node tools/list-strings.mjs",
