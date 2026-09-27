@@ -11,11 +11,18 @@ body{
   color:#fff;
   font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
   min-height:100vh;
+  min-height:100dvh;      /* dvh ignores the phone's url bar, so the layout is
+                             sized against the height you can actually see */
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  overflow:hidden;
+  /* was `overflow:hidden`. on a short screen that clipped the d-pad off the
+     bottom with no way to scroll to it — the game was unplayable. let the
+     page scroll as a fallback instead of hiding the controls. */
+  overflow-x:hidden;
+  overflow-y:auto;
+  padding:14px 12px calc(14px + env(safe-area-inset-bottom, 0px));
   background-image:radial-gradient(ellipse at 50% 0%, rgba(244,63,94,0.08) 0%, transparent 60%),
     radial-gradient(circle at 20% 80%, rgba(244,63,94,0.04) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(190,24,93,0.03) 0%, transparent 50%);
@@ -40,10 +47,11 @@ canvas{
   display:block;
   border-radius:12px;
   box-shadow:0 0 60px rgba(244,63,94,0.08),0 0 120px rgba(244,63,94,0.04);
-  max-width:98vw;
-  max-height:50vh;
-  width:auto;
-  height:auto;
+  /* the size is owned by resizeCanvas(), which measures the real free space.
+     `max-height:50vh` used to fight it and letterbox the maze on a phone. */
+  max-width:100%;
+  touch-action:none;      /* a swipe on the canvas moves the player, it does
+                             not scroll the page */
 }
 #dpad{
   display:flex;
@@ -254,13 +262,37 @@ function generateMaze(){
 }
 
 function resizeCanvas(){
-  const maxW = Math.min(window.innerWidth * 0.95, 600);
-  const maxH = window.innerHeight * 0.52;
+  /* Measure the space that is actually free instead of guessing a share of
+     the viewport. The old `innerHeight * 0.52` did not leave room for the
+     title, the status line and the d-pad, and on a phone the controls ended
+     up below the fold — with `body{overflow:hidden}` there was no way to
+     reach them, so the maze could not be played at all. */
+  const dpad   = document.getElementById('dpad');
+  const status = document.getElementById('status');
+  const h1     = document.querySelector('h1');
+  const sub    = document.querySelector('.subtitle');
+
+  const chromeH =
+    [h1, sub, status].reduce((h, el) => h + (el ? el.offsetHeight : 0), 0) +
+    (dpad ? dpad.offsetHeight : 120) +
+    (dpad ? parseFloat(getComputedStyle(dpad).marginTop) || 0 : 10) +
+    56;                                  // body padding + breathing room
+
+  const maxH = Math.max(160, window.innerHeight - chromeH);
+  const maxW = Math.min(window.innerWidth * 0.96, 600);
   const cellW = Math.floor(maxW / COLS);
   const cellH = Math.floor(maxH / ROWS);
-  CELL_SIZE = Math.max(Math.min(cellW, cellH, 36), 14);
-  canvas.width = COLS * CELL_SIZE;
-  canvas.height = ROWS * CELL_SIZE;
+  CELL_SIZE = Math.max(Math.min(cellW, cellH, 36), 10);
+
+  /* draw the grid at device resolution: a 3x phone given a 1x backing store
+     shows a soft, blurry maze. the context is scaled, so every coordinate in
+     the drawing code stays in CSS pixels and needs no change. */
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width  = COLS * CELL_SIZE * dpr;
+  canvas.height = ROWS * CELL_SIZE * dpr;
+  canvas.style.width  = COLS * CELL_SIZE + 'px';
+  canvas.style.height = ROWS * CELL_SIZE + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
 function drawMaze(){
@@ -375,18 +407,22 @@ canvas.addEventListener('touchstart', (e) => {
   touchStartX = t.clientX;
   touchStartY = t.clientY;
 }, {passive: true});
+/* without this the browser owns the gesture and scrolls the page instead of
+   moving the player, so swiping the maze did nothing on a phone */
+canvas.addEventListener('touchmove', (e) => e.preventDefault(), {passive: false});
 canvas.addEventListener('touchend', (e) => {
-  if(!touchStartX || !touchStartY) return;
+  if(touchStartX == null || touchStartY == null){ touchStartX = touchStartY = null; return; }
   const dx = e.changedTouches[0].clientX - touchStartX;
   const dy = e.changedTouches[0].clientY - touchStartY;
   const adx = Math.abs(dx), ady = Math.abs(dy);
+  touchStartX = touchStartY = null;          // always clear, even on a tap:
+                                             // a stale anchor broke the next swipe
   if(Math.max(adx, ady) < 10) return;
   if(adx > ady){
     movePlayer(dx > 0 ? 1 : -1, 0);
   } else {
     movePlayer(0, dy > 0 ? 1 : -1);
   }
-  touchStartX = null;
 }, {passive: true});
 
 // Resize handler
@@ -401,13 +437,18 @@ window.addEventListener('resize', () => {
 
 // Back to main site
 function goBack(){
-  if(window.opener){
-    const el=window.opener.document.getElementById('maze-game');
-    if(el)el.scrollIntoView({behavior:'smooth'});
+  /* Relative path, always. The site is served from /Sarah-/, so '/' sent the
+     visitor to the GitHub profile page instead of back into the site — and on
+     a phone there is no window.opener at all, because the maze is a normal
+     tab, not a popup. Every back link in this project is relative for that
+     same reason. */
+  if(window.opener && !window.opener.closed){
+    const el = window.opener.document.getElementById('maze-game');
+    if(el) el.scrollIntoView({behavior:'smooth'});
     window.close();
-  } else {
-    window.location.href = '/';
+    if(!window.closed) return;              // popup blocked — fall through
   }
+  window.location.href = './';
 }
 
 // Event listeners (robust, no inline onclick)

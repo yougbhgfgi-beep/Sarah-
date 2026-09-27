@@ -57,17 +57,16 @@
         background: #0d0508;
       }
 
-      /* الرسالة جوه المظروف — المقاس بيتظبط من هنا بس.
-         دلوقتي محتواها قلب واحد، فمقاسها كبير ومتحطّط في نص.
-         لو رجعت كتبت كلام هنا، رجّع الرقمين لـ 15px و 16px. */
+      /* حجم خط الرسالة جوه المظروف — بيتظبط من هنا بس.
+         غيّر الرقمين دول وهيتظبط في الموبايل والكمبيوتر.
+         (لو خليت الرسالة رمز واحد زي قلب، ارفع الرقم لـ 4rem
+          وشيل الجملتين اللي تحته عشان يبقى في النص.) */
       .letter-body {
-        font-size: clamp(4rem, 22vw, 7rem);
-        line-height: 1;
-        text-align: center;
+        font-size: 15px;
       }
       @media (min-width: 640px) {
         .letter-body {
-          font-size: clamp(5rem, 12vw, 8rem);
+          font-size: 16px;
         }
       }
     </style>
@@ -104,10 +103,10 @@
     </script>
 
     <!-- ===== app ===== -->
-    <script src="./config.js?v=8.1.7"></script>
-    <script src="./install.js?v=8.1.7" defer></script>
-    <script type="module" crossorigin src="./assets/app.js?v=8.1.7"></script>
-    <link rel="stylesheet" crossorigin href="./assets/app.css?v=8.1.7" />
+    <script src="./config.js?v=8.1.8"></script>
+    <script src="./install.js?v=8.1.8" defer></script>
+    <script type="module" crossorigin src="./assets/app.js?v=8.1.8"></script>
+    <link rel="stylesheet" crossorigin href="./assets/app.css?v=8.1.8" />
   </head>
   <body>
     <div id="root"></div>

@@ -19,7 +19,8 @@
     "probe:audio": "node tools/probe-audio.mjs",
     "deploy:url": "node tools/set-deploy-url.mjs",
     "verify": "node tools/verify-config.mjs",
-    "test": "npm run check && npm run audit && npm run verify && npm run test:boot",
+    "test": "npm run check && npm run audit && npm run verify && npm run check:maze && npm run test:boot",
+    "check:maze": "node tools/check-maze.mjs",
     "test:boot": "node tools/boot-test.mjs"
   },
   "engines": {
