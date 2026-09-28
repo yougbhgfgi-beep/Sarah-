@@ -37,7 +37,7 @@
     {
       "name": "وصل النجوم",
       "short_name": "النجوم",
-      "url": "./game.html",
+      "url": "./",
       "icons": [{ "src": "./images/icon-192.png", "sizes": "192x192" }]
     }
   ]

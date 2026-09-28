@@ -263,6 +263,235 @@
         .lm-fill,
         .lm-card { transition: none !important; }
       }
+
+      /* ===== لعبة "وصل النجوم" (game-overlay.js) =====
+         نافذة فوق الصفحة نفسها. مش صفحة تانية — مفيش تنقّل خالص. */
+      html.gm-open,
+      html.gm-open body {
+        overflow: hidden;   /* الصفحة اللي ورا ماتتنزلقش وأنتي بتلعي */
+      }
+      #gameOverlay {
+        position: fixed;
+        inset: 0;
+        z-index: 60;                /* فوق المحتوى، تحت الـ install prompt */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        /* dvh مش px: ارتفاع شريط العنوان في الموبايل بيتحسب صح كده */
+        min-height: 100dvh;
+        padding: 3.25rem 12px calc(1rem + env(safe-area-inset-bottom, 0px));
+        background: rgba(6, 3, 6, 0.9);
+        -webkit-backdrop-filter: blur(18px);
+        backdrop-filter: blur(18px);
+        color: #fff;
+        font-family: inherit;
+        text-align: center;
+        /* never `hidden` — شاشة قصيرة لازم تقدر توصلي للزرار */
+        overflow-x: hidden;
+        overflow-y: auto;
+        animation: gm-in 0.3s ease-out;
+      }
+      #gameOverlay[hidden] { display: none; }
+      @keyframes gm-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      .gm-close {
+        position: absolute;
+        top: 12px;
+        left: 12px;                /* RTL: جهة النهاية */
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        transition: background 0.2s, color 0.2s;
+      }
+      .gm-close svg { width: 18px; height: 18px; }
+      .gm-close:hover { background: rgba(196, 13, 116, 0.25); color: #fff; }
+      .gm-close:focus-visible { outline: 2px solid #f9a8d4; outline-offset: 2px; }
+
+      .gm-title {
+        margin: 0;
+        font-size: clamp(1.25rem, 5vw, 1.9rem);
+        font-weight: 700;
+        line-height: 1.3;
+        background: linear-gradient(135deg, #fde68a, #d4af37, rgb(196, 13, 116));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .gm-sub {
+        margin: 0 0 0.75rem;
+        font-size: clamp(0.7rem, 2.6vw, 0.85rem);
+        letter-spacing: 0.1em;
+        color: rgba(255, 255, 255, 0.4);
+      }
+
+      /* ---------- the board ---------- */
+      .gm-board {
+        position: relative;
+        width: 100%;
+        max-width: 620px;
+        /* الارتفاع هو القيد الحقيقي على الموبايل — مش رقم ثابت */
+        height: clamp(260px, 50dvh, 520px);
+        border-radius: 24px;
+        border: 1px solid rgba(196, 13, 116, 0.3);
+        background: rgba(0, 0, 0, 0.4);
+        box-shadow: 0 0 60px rgba(196, 13, 116, 0.1);
+        overflow: hidden;
+        touch-action: none;        /* سحب الخط مايعملش scroll للصفحة */
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .gm-lines {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+      .gm-lines path {
+        fill: none;
+        stroke: url(#gmGold);
+        stroke-width: 3;
+        stroke-linecap: round;
+        filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.55));
+      }
+      .gm-lines path.is-pending {
+        stroke-dasharray: 5 7;
+        opacity: 0.75;
+        filter: none;
+      }
+
+      /* ---------- a star ----------
+         No number: the constellation should not read as a worksheet. Exactly
+         one star glows (`.is-next`) and that is the whole instruction. */
+      .gm-star {
+        position: absolute;
+        width: 44px;
+        height: 44px;
+        transform: translate(-50%, -50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 2;
+        color: rgba(255, 255, 255, 0.22);
+        transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), color 0.35s;
+      }
+      .gm-star svg { width: 100%; height: 100%; fill: currentColor; }
+      .gm-star:hover { transform: translate(-50%, -50%) scale(1.18); }
+      .gm-star.is-done { color: #d4af37; }
+      .gm-star.is-next {
+        color: #fde68a;
+        filter: drop-shadow(0 0 14px rgba(212, 175, 55, 0.9));
+        animation: gm-breathe 1.7s ease-in-out infinite;
+      }
+      @keyframes gm-breathe {
+        0%, 100% { transform: translate(-50%, -50%) scale(1); }
+        50% { transform: translate(-50%, -50%) scale(1.22); }
+      }
+      .gm-star.is-wrong { animation: gm-shake 0.4s; }
+      @keyframes gm-shake {
+        0%, 100% { transform: translate(-50%, -50%); }
+        25% { transform: translate(calc(-50% - 7px), -50%); }
+        75% { transform: translate(calc(-50% + 7px), -50%); }
+      }
+
+      .gm-caption {
+        position: absolute;
+        bottom: 14px;
+        left: 0;
+        right: 0;
+        margin: 0;
+        padding: 0 12px;
+        font-size: 0.8rem;
+        letter-spacing: 0.04em;
+        color: rgba(255, 255, 255, 0.42);
+        pointer-events: none;
+      }
+      .gm-progress {
+        margin: 0.75rem 0 0;
+        font-size: 0.75rem;
+        letter-spacing: 0.1em;
+        color: rgba(255, 255, 255, 0.32);
+      }
+      .gm-replay {
+        margin-top: 0.5rem;
+        padding: 9px 22px;
+        border-radius: 9999px;
+        border: 1px solid rgba(196, 13, 116, 0.4);
+        background: rgba(196, 13, 116, 0.14);
+        color: #fbcfe8;
+        font-family: inherit;
+        font-size: 0.8rem;
+        cursor: pointer;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        transition: background 0.2s;
+      }
+      .gm-replay:hover { background: rgba(196, 13, 116, 0.28); }
+      .gm-replay:focus-visible { outline: 2px solid #f9a8d4; outline-offset: 2px; }
+
+      /* ---------- the win card ---------- */
+      .gm-win {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 24px;
+        text-align: center;
+        background: rgba(6, 3, 6, 0.9);
+        -webkit-backdrop-filter: blur(14px);
+        backdrop-filter: blur(14px);
+        animation: gm-in 0.35s ease-out;
+      }
+      .gm-win[hidden] { display: none; }
+      .gm-hearts {
+        font-size: 40px;
+        animation: gm-float 2s ease-in-out infinite;
+      }
+      @keyframes gm-float {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-8px) scale(1.1); }
+      }
+      .gm-win h3 {
+        margin: 0;
+        font-size: clamp(1.3rem, 5vw, 1.9rem);
+        background: linear-gradient(135deg, #fde68a, #d4af37, rgb(196, 13, 116));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .gm-win p {
+        margin: 0;
+        max-width: 34ch;
+        font-size: clamp(0.85rem, 2.5vw, 1rem);
+        line-height: 1.9;
+        color: rgba(255, 255, 255, 0.75);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #gameOverlay,
+        .gm-win,
+        .gm-hearts,
+        .gm-star.is-next,
+        .gm-star.is-wrong { animation: none !important; }
+        .gm-star { transition: none !important; }
+      }
     </style>
 
     <!-- ===== fonts ===== -->
@@ -297,12 +526,13 @@
     </script>
 
     <!-- ===== app ===== -->
-    <script src="./config.js?v=8.3.2"></script>
-    <script src="./install.js?v=8.3.2" defer></script>
-    <script src="./letter-nav.js?v=8.3.2" defer></script>
-    <script src="./love-meter.js?v=8.3.2" defer></script>
-    <script type="module" crossorigin src="./assets/app.js?v=8.3.2"></script>
-    <link rel="stylesheet" crossorigin href="./assets/app.css?v=8.3.2" />
+    <script src="./config.js?v=8.3.3"></script>
+    <script src="./install.js?v=8.3.3" defer></script>
+    <script src="./letter-nav.js?v=8.3.3" defer></script>
+    <script src="./love-meter.js?v=8.3.3" defer></script>
+    <script src="./game-overlay.js?v=8.3.3" defer></script>
+    <script type="module" crossorigin src="./assets/app.js?v=8.3.3"></script>
+    <link rel="stylesheet" crossorigin href="./assets/app.css?v=8.3.3" />
   </head>
   <body>
     <div id="root"></div>

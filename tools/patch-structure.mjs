@@ -117,11 +117,19 @@ const PATCHES = [
     replace: `Dt.ui.game${suffix}}`,
   })),
   {
-    /* the play button opened the maze. it now opens the star game.
-       the path stays relative — the site is served from /Sarah-/. */
-    what: 'game section: the play button opens game.html, not maze.html',
-    find: "window.open('maze.html','_blank')",
-    replace: "window.open('game.html','_blank')",
+    /* the play button used to open the maze in a new tab, then the star game
+       in a new tab. now it opens the in-page overlay (game-overlay.js) and
+       nothing navigates at all — she stays on the hero screen.
+
+       `window.SarahGame` is a deliberate contract, not a guess: game-overlay.js
+       is a deferred classic script declared *before* the bundle, so it has
+       always run by the time this line executes. the warn branch is there so a
+       failed script load is visible instead of a button that silently does
+       nothing — and test:boot asserts that warning never fires. */
+    what: 'game section: the play button opens the in-page overlay',
+    find: "window.open('game.html','_blank')",
+    replace:
+      "window.SarahGame?window.SarahGame.open():console.warn('[sarah] game-overlay.js did not load - the game button does nothing')",
   },
 ];
 

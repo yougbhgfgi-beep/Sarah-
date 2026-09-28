@@ -580,6 +580,260 @@ const check = (name, ok) => results.push([name, ok]);
   window.close();
 }
 
+/* ---------- 10. game-overlay.js: the in-page star game ----------
+   The game moved out of a standalone page and into a dialog on the hero screen,
+   which changed everything that can break: it opens on its own, it locks the
+   page behind it, it draws lines from percentages, and it closes itself on the
+   last star. Each of those gets a check here.
+
+   jsdom has no layout engine, so every measurement the game depends on is
+   faked — `getBoundingClientRect` on the board and the stars. Without this the
+   percentage maths has nothing to divide by and the drag can never connect. */
+{
+  const gameSrc = read('game-overlay.js');
+  const errs = [];
+  const warns = [];
+  const vc = new VirtualConsole();
+  vc.on('jsdomError', (e) => errs.push(String(e.stack || e.message)));
+  vc.on('error', (...a) => errs.push('game-overlay console.error: ' + a.join(' ')));
+  vc.on('warn', (...a) => warns.push(a.join(' ')));
+
+  const { window } = boot();
+  await waitFor(window, has(window, D.login.title), 'login screen');
+  const doc = window.document;
+
+  window.eval(gameSrc);
+
+  /* the overlay exists in the DOM immediately but stays out of the way: the
+     hero screen is not on yet, so nothing may be shown or focused */
+  const overlay = doc.getElementById('gameOverlay');
+  check('the overlay is built as soon as the script runs', !!overlay);
+  check('the overlay stays hidden while the hero screen is absent',
+    !!overlay && overlay.hidden === true);
+  check('nothing is focused while the overlay is hidden',
+    doc.activeElement === doc.body || doc.activeElement === null);
+
+  /* ---- a layout engine, so the board has a real size ---- */
+  const BOARD_W = 300, BOARD_H = 400;
+  const rect = (w, h) => ({ width: w, height: h, top: 0, left: 0, right: w, bottom: h });
+  Object.defineProperty(overlay.querySelector('.gm-board'), 'getBoundingClientRect', {
+    configurable: true, value: () => rect(BOARD_W, BOARD_H),
+  });
+
+  const stars = [...overlay.querySelectorAll('.gm-star')];
+  check('the board has stars on it', stars.length >= 2);
+  const STAR_SIZE = 40;
+  for (const s of stars) {
+    const top = (parseFloat(s.style.top) / 100) * BOARD_H;
+    const left = (parseFloat(s.style.left) / 100) * BOARD_W;
+    const h = STAR_SIZE / 2;
+    Object.defineProperty(s, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        width: STAR_SIZE,
+        height: STAR_SIZE,
+        top: top - h,
+        left: left - h,
+        right: left + h,
+        bottom: top + h,
+      }),
+    });
+  }
+
+  /* ---- walk the real flow; the game opens by itself on the hero ---- */
+  const input = q(window, 'input[type="password"], input');
+  type(window, input, 'love');
+  await wait(150);
+  (q(window, 'form') || input.closest('form') || input.parentElement)
+    .dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+  await waitFor(window, has(window, D.envelope.title), 'envelope');
+  const openBtn = [...doc.querySelectorAll('button')].find((b) =>
+    b.textContent.includes(D.envelope.buttonText)
+  );
+  if (openBtn) {
+    openBtn.click();
+    await waitFor(window, has(window, D.main.heroSubtitle), 'hero');
+  }
+  await wait(600);   /* the auto-open polls at 250ms */
+
+  check('the game opens by itself on the hero screen', overlay.hidden === false);
+  check('opening it locks the page behind it',
+    doc.documentElement.classList.contains('gm-open'));
+  check('the close control takes focus when it opens',
+    doc.activeElement === overlay.querySelector('.gm-close'));
+
+  /* ---- copy all comes from config.js ---- */
+  check('the game title comes from config.js',
+    overlay.querySelector('.gm-title')?.textContent === D.ui.gameTitle);
+  check('the subtitle comes from config.js',
+    overlay.querySelector('.gm-sub')?.textContent === D.game.subtitle);
+  check('the board caption comes from config.js',
+    overlay.querySelector('.gm-caption')?.textContent === D.game.caption);
+  check('the win title comes from config.js',
+    overlay.querySelector('.gm-win h3')?.textContent === D.game.winTitle);
+  check('the win message comes from config.js',
+    overlay.querySelector('.gm-win p')?.textContent === D.game.winMessage.replace(/\n/g, ' '));
+  check('the close control is labelled for screen readers',
+    overlay.querySelector('.gm-close')?.getAttribute('aria-label') === D.game.closeLabel);
+  check('the dialog is announced as a modal',
+    overlay.getAttribute('role') === 'dialog' && overlay.getAttribute('aria-modal') === 'true');
+
+  /* ---- no numbers on the stars: one glow is the whole instruction ---- */
+  check('the stars carry no number to read',
+    stars.every((s) => !/\d|[٠-٩]/.test(s.textContent)));
+  check('the stars are SVG, not emoji',
+    stars.every((s) => s.querySelector('svg path') && !/[⭐🌟✨]/u.test(s.textContent)));
+
+  /* ---- the progress readout ----
+     it counts the star she is standing on, 1-based, so it reads "١ من ٥" on
+     arrival and "٥ من ٥" on the win. */
+  const ar = (n) => String(n).split('').map((d) => '٠١٢٣٤٥٦٧٨٩'[+d]).join('');
+  const progress = overlay.querySelector('.gm-progress');
+  check('the counter starts on the first star',
+    progress.textContent === `${ar(1)} من ${ar(stars.length)}`);
+  check('exactly one star glows to begin with',
+    stars.filter((s) => s.classList.contains('is-next')).length === 1);
+  check('no star is marked done before the first connection',
+    stars.every((s) => !s.classList.contains('is-done')));
+
+  /* ---- drag star to star ---- */
+  const at = (i) => {
+    const r = stars[i].getBoundingClientRect();
+    return { clientX: r.left + STAR_SIZE / 2, clientY: r.top + STAR_SIZE / 2 };
+  };
+  const pd = (type, i) => {
+    const e = new window.Event(type, { bubbles: true, cancelable: true });
+    Object.assign(e, at(i));
+    overlay.querySelector('.gm-board').dispatchEvent(e);
+  };
+  /* release at real coordinates rather than at a star, so a drag that ends on
+     empty space can be expressed — indexing stars[stars.length] would throw in
+     the test helper, which is not what we are trying to check here. */
+  const pdXY = (type, x, y) => {
+    const e = new window.Event(type, { bubbles: true, cancelable: true });
+    Object.assign(e, { clientX: x, clientY: y });
+    overlay.querySelector('.gm-board').dispatchEvent(e);
+  };
+
+  pd('pointerdown', 0);
+  check('a line is drawn while dragging', !!overlay.querySelector('.gm-lines path'));
+  pd('pointerup', 1);
+  await wait(60);
+
+  const lines = () => [...overlay.querySelectorAll('.gm-lines path:not(.is-pending)')].length;
+  check('dropping on the next star connects it', lines() === 1);
+  check('the counter moved on', progress.textContent === `${ar(2)} من ${ar(stars.length)}`);
+  check('the glow moved to the following star',
+    stars.filter((s) => s.classList.contains('is-next')).length === 1 &&
+    stars[1].classList.contains('is-next'));
+  check('a connected star is marked done', stars[0].classList.contains('is-done'));
+  check('the win card is still hidden', overlay.querySelector('.gm-win').hidden === true);
+
+  /* a wrong star nudges but never punishes, and never advances */
+  const before = lines();
+  pd('pointerdown', stars.length - 1);
+  check('a wrong star is refused', stars[stars.length - 1].classList.contains('is-wrong'));
+  pd('pointerup', stars.length - 1);
+  await wait(60);
+  check('a wrong star does not advance the game', lines() === before);
+  check('a stray drag leaves no line behind',
+    !overlay.querySelector('.gm-lines path.is-pending'));
+
+  /* ---- a tap on the glowing star connects it (the touchscreen fallback) ---- */
+  pd('pointerdown', 1);
+  pd('pointerup', 2);
+  await wait(60);
+  stars[1].dispatchEvent(new window.Event('click', { bubbles: true }));
+  await wait(60);
+  check('tapping the glowing star connects it', lines() === 2);
+
+  /* ---- finish the game: the last star wins and the game closes itself ----
+     The last connection is made by TAPPING rather than dragging, so the
+     fallback path is exercised on the move that actually ends the game. */
+  for (let i = 2; i < stars.length - 2; i++) {
+    pd('pointerdown', i);
+    pd('pointerup', i + 1);
+    await wait(40);
+  }
+  stars[stars.length - 2].dispatchEvent(new window.Event('click', { bubbles: true }));
+  await wait(80);
+
+  check('every star is connected when the game is won', lines() === stars.length - 1);
+  check('the counter reads full',
+    progress.textContent === `${ar(stars.length)} من ${ar(stars.length)}`);
+  check('the win card appears', overlay.querySelector('.gm-win').hidden === false);
+  check('the replay control appears', overlay.querySelector('.gm-replay').hidden === false);
+  check('the caption says she got there',
+    overlay.querySelector('.gm-caption').textContent === D.game.done);
+  check('every star is lit once the game is won',
+    stars.every((s) => s.classList.contains('is-done') && !s.classList.contains('is-next')));
+  check('the game is still open right after the win (so the card can be read)',
+    overlay.hidden === false);
+
+  /* After the win the board must be inert. This is also the boundary that used
+     to throw: with N stars there are N-1 connections, and the old code asked
+     for nodes[N] on the last one. "can be completed" above is the regression
+     test; this is the guard rail around it. */
+  let threw = false;
+  try {
+    pd('pointerdown', stars.length - 1);
+    pdXY('pointerup', -50, -50);
+  } catch (e) {
+    threw = true;
+  }
+  check('a drag after the win does not throw', !threw);
+  check('and the finished board is inert', lines() === stars.length - 1);
+
+  /* ---- it closes itself, which is the whole point of "the game just ends" ---- */
+  const stay = Number(String(gameSrc).match(/WIN_STAY_MS\s*=\s*(\d+)/)?.[1] ?? 5000);
+  await waitFor(window, () => overlay.hidden === true, 'the game to close itself', stay + 3000);
+  check('the game closes itself after the win', overlay.hidden === true);
+  check('closing releases the page behind it',
+    !doc.documentElement.classList.contains('gm-open'));
+
+  /* ---- replay ---- */
+  window.SarahGame.open();
+  await wait(80);
+  check('the play button contract re-opens the game', overlay.hidden === false);
+  overlay.querySelector('.gm-replay').dispatchEvent(new window.Event('click', { bubbles: true }));
+  await wait(80);
+  check('replay clears the lines', lines() === 0);
+  check('replay resets the counter',
+    progress.textContent === `${ar(1)} من ${ar(stars.length)}`);
+  check('replay puts the glow back on the first star',
+    stars.filter((s) => s.classList.contains('is-next')).length === 1 &&
+    stars[0].classList.contains('is-next'));
+  check('replay hides the win card', overlay.querySelector('.gm-win').hidden === true);
+
+  /* ---- closing by hand ---- */
+  window.SarahGame.close();
+  await wait(60);
+  check('close() hides the game', overlay.hidden === true);
+  check('close() releases the page again',
+    !doc.documentElement.classList.contains('gm-open'));
+
+  /* ---- Escape, and the backdrop ---- */
+  window.SarahGame.open();
+  await wait(60);
+  doc.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await wait(60);
+  check('Escape closes the game', overlay.hidden === true);
+
+  window.SarahGame.open();
+  await wait(60);
+  overlay.dispatchEvent(new window.Event('click', { bubbles: true }));
+  await wait(60);
+  check('clicking the backdrop closes the game', overlay.hidden === true);
+
+  check('game-overlay.js runs clean', errs.length === 0);
+  /* the bundle warns when this file is missing — if it warned, the file
+     clearly was not missing, so any warn here is a real defect */
+  check('game-overlay.js logs no warnings', warns.length === 0);
+  if (warns.length) console.log('        warnings: ' + warns.join(' | '));
+
+  window.close();
+}
+
 /* ---------- report ---------- */
 let bad = 0;
 for (const [name, ok] of results) {

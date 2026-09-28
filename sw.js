@@ -2,7 +2,7 @@
    Service Worker — متغيّرش رقم النسخة بإيدك، شغّل:  npm run version:bump
    ===================================================================== */
 
-const APP_VERSION = 'v8.3.2';
+const APP_VERSION = 'v8.3.3';
 const CACHE_NAME = `love-story-cache-${APP_VERSION}`;
 
 /* مسارات نسبية (مش /images) عشان تشتغل صح على GitHub Pages
@@ -10,12 +10,12 @@ const CACHE_NAME = `love-story-cache-${APP_VERSION}`;
 const PRECACHE = [
   './',
   './index.html',
-  './game.html',
   './manifest.json',
   './config.js',
   './install.js',
   './letter-nav.js',
   './love-meter.js',
+  './game-overlay.js',
   './assets/app.js',
   './assets/app.css',
   './images/icon-192.png',
