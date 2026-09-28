@@ -453,6 +453,116 @@ const check = (name, ok) => results.push([name, ok]);
   w.close();
 }
 
+/* ---------- 9. love-meter.js: the love meter card ----------
+   same shape as the letter-nav test above: a separate file with its own state,
+   mounted into a React tree, so nothing above proves it works. the widget
+   finds its place by appending after the LAST <section> of the hero screen,
+   which is the invariant worth pinning down. */
+{
+  const meterSrc = read('love-meter.js');
+  const errs = [];
+  const vc = new VirtualConsole();
+  vc.on('jsdomError', (e) => errs.push(String(e.stack || e.message)));
+  vc.on('error', (...a) => errs.push('love-meter console.error: ' + a.join(' ')));
+
+  const { window } = boot();
+  await waitFor(window, has(window, D.login.title), 'login screen');
+  const doc = window.document;
+
+  window.eval(meterSrc);
+  check('love-meter.js does nothing while the hero screen is absent', !doc.getElementById('loveMeter'));
+
+  /* walk the real flow so the hero renders and the widget can mount */
+  const input = q(window, 'input[type="password"], input');
+  type(window, input, 'love');
+  await wait(150);
+  (q(window, 'form') || input.closest('form') || input.parentElement)
+    .dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+  await waitFor(window, has(window, D.envelope.title), 'envelope');
+  const openBtn = [...doc.querySelectorAll('button')].find((b) =>
+    b.textContent.includes(D.envelope.buttonText)
+  );
+  if (openBtn) {
+    openBtn.click();
+    await waitFor(window, has(window, D.main.heroSubtitle), 'hero');
+  }
+  await wait(400);
+
+  const meter = doc.getElementById('loveMeter');
+  check('love-meter.js mounts once the hero screen is on', !!meter);
+  check('love-meter.js runs clean on mount', errs.length === 0);
+
+  if (meter) {
+    check('the meter title comes from config.js',
+      meter.querySelector('.lm-title')?.textContent === D.loveMeter.title);
+    check('the meter badge comes from config.js',
+      meter.querySelector('.lm-badge')?.textContent === D.loveMeter.badge);
+
+    /* it is appended after the LAST React section, which is the one position
+       React can never insert in front of. if this ever fails the widget is
+       floating in the middle of the page. the meter is itself a <section>, so
+       it has to be excluded before asking which one is last. */
+    const sections = [...doc.querySelectorAll('#root section')].filter((s) => s.id !== 'loveMeter');
+    const last = sections[sections.length - 1];
+    check('the meter sits after the last hero section',
+      !!last && last.nextElementSibling === meter);
+
+    /* the real invariant is not "it is the very last node" — the closing
+       button legitimately lives below it. it is that NO hero section may come
+       after the meter: a section added later would land underneath the widget
+       and break the reading order of the page. (4 === DOCUMENT_POSITION_FOLLOWING;
+       2 is PRECEDING, which is the wrong way round and would pass for any
+       section that legitimately sits above the meter.) */
+    const after = [...doc.querySelectorAll('#root section')].filter(
+      (s) => s.id !== 'loveMeter' && (meter.compareDocumentPosition(s) & 4) !== 0
+    );
+    check('no hero section renders after the meter', after.length === 0);
+
+    /* a <button>, not a div: this is what makes it keyboard reachable and
+       announced by a screen reader. */
+    const card = meter.querySelector('.lm-card');
+    check('the card is a real <button> (keyboard + screen reader)', card?.tagName === 'BUTTON');
+    check('the card is not yet pressed', card?.getAttribute('aria-expanded') === 'false');
+
+    /* empty before the press — a "0%" sitting there would be a lie */
+    check('no number is shown before the press',
+      (meter.querySelector('.lm-num')?.textContent || '') === '');
+    check('the bar is empty before the press',
+      meter.querySelector('.lm-fill')?.style.width === '0%');
+    check('the idle line comes from config.js',
+      meter.querySelector('.lm-status')?.textContent === D.loveMeter.idle);
+
+    card.click();
+    await wait(1200);
+
+    check('the pressed card reports its state to assistive tech',
+      card.getAttribute('aria-expanded') === 'true');
+    const target = D.loveMeter.randomize
+      ? null
+      : Math.max(0, Math.min(100, Number(D.loveMeter.value) || 0));
+    check('the number is revealed from config.js',
+      target === null
+        ? /^\d{1,3}%$/.test(meter.querySelector('.lm-num').textContent)
+        : meter.querySelector('.lm-num').textContent === `${target}%`);
+    check('the bar filled to the same number',
+      target === null
+        ? /^\d{1,3}%$/.test(meter.querySelector('.lm-fill').style.width)
+        : meter.querySelector('.lm-fill').style.width === `${target}%`);
+    check('the reveal lines came from config.js',
+      (Array.isArray(D.loveMeter.reveal) ? D.loveMeter.reveal.filter(Boolean).join(' ') : D.loveMeter.idle) ===
+        meter.querySelector('.lm-status').textContent);
+    check('love-meter.js runs clean after the press', errs.length === 0);
+
+    /* pressing again must not re-run the count-up or change the number */
+    const before = meter.querySelector('.lm-num').textContent;
+    card.click();
+    await wait(200);
+    check('a second press changes nothing', meter.querySelector('.lm-num').textContent === before);
+  }
+
+  window.close();
+}
+
 /* ---------- report ---------- */
 let bad = 0;
 for (const [name, ok] of results) {

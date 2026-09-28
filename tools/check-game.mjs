@@ -39,8 +39,11 @@ const RULES = [
    /body\s*\{[^}]*overflow-y\s*:\s*auto/.test(code)],
   ['the board is sized against the visible height (dvh / svh, not a fixed px)',
    /#board\s*\{[^}]*(dvh|svh)/.test(code)],
-  ['the board never overflows sideways (max-width:100%)',
-   /#board\s*\{[^}]*max-width\s*:\s*100%/.test(code)],
+  /* horizontal overflow is prevented by `width:100%` just as well as by
+     `max-width:100%` — either one is correct, so accept both rather than
+     failing a board that cannot actually overflow. */
+  ['the board cannot overflow sideways (width:100% or max-width:100%)',
+   /#board\s*\{[^}]*(?:width\s*:\s*100%|max-width\s*:\s*100%)/.test(code)],
   ['dragging a line does not scroll the page (touch-action:none)',
    /#board\s*\{[^}]*touch-action\s*:\s*none/.test(code)],
   ['the board adapts when the url bar / rotation changes (ResizeObserver)',
@@ -48,6 +51,11 @@ const RULES = [
   ['multi-touch / stray pointer states are cleaned up (pointercancel)',
    /pointercancel/.test(code)],
 ];
+
+for (const [name, ok] of RULES) {
+  if (ok) pass(name);
+  else fail(name);
+}
 
 /* ------------------------------------------------------------ navigation --
    the site is served from a sub-path (/Sarah-/). an absolute '/' link drops
