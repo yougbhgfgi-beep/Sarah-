@@ -35,9 +35,9 @@
   ],
   "shortcuts": [
     {
-      "name": "لعبة المتاهة",
-      "short_name": "المتاهة",
-      "url": "./maze.html",
+      "name": "وصل النجوم",
+      "short_name": "النجوم",
+      "url": "./game.html",
       "icons": [{ "src": "./images/icon-192.png", "sizes": "192x192" }]
     }
   ]

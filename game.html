@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0d0508">
+<title>وصل النجوم — محمد & ساره</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:#0d0508;
+  color:#fff;
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  min-height:100vh;
+  min-height:100dvh;          /* size against the height you can actually see,
+                                 so the url bar never covers the board */
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  overflow-x:hidden;
+  overflow-y:auto;            /* never `hidden` — a short screen must still be
+                                 able to scroll to the controls */
+  padding:56px 12px calc(16px + env(safe-area-inset-bottom, 0px));
+  background-image:radial-gradient(ellipse at 50% 0%, rgba(196,13,116,0.10) 0%, transparent 60%),
+    radial-gradient(circle at 20% 80%, rgba(244,63,94,0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(212,175,55,0.04) 0%, transparent 50%);
+}
+h1{
+  font-family:Georgia,'Times New Roman',serif;
+  font-size:clamp(1.3rem,5vw,2rem);
+  font-weight:700;
+  margin-bottom:6px;
+  background:linear-gradient(135deg,#fde68a,#d4af37,rgb(196,13,116));
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  text-align:center;
+}
+.subtitle{
+  font-size:clamp(0.65rem,2.4vw,0.8rem);
+  color:rgba(255,255,255,0.35);
+  letter-spacing:0.15em;
+  margin-bottom:18px;
+  text-align:center;
+}
+
+/* ---------- the board ---------- */
+#board{
+  position:relative;
+  width:100%;
+  max-width:820px;
+  /* the height is the real constraint on a phone — never a fixed 600px */
+  height:clamp(300px,56dvh,600px);
+  border-radius:24px;
+  border:1px solid rgba(196,13,116,0.30);
+  background:rgba(0,0,0,0.40);
+  -webkit-backdrop-filter:blur(4px);
+  backdrop-filter:blur(4px);
+  box-shadow:0 0 60px rgba(196,13,116,0.10),inset 0 0 80px rgba(196,13,116,0.05);
+  overflow:hidden;
+  touch-action:none;          /* dragging a line must not scroll the page */
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+#lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#lines path{
+  fill:none;
+  stroke:url(#goldGradient);
+  stroke-width:3;
+  stroke-linecap:round;
+  filter:drop-shadow(0 0 6px rgba(212,175,55,0.55));
+  transition:opacity .25s;
+}
+#lines path.pending{stroke-dasharray:5 7;opacity:.75;filter:none}
+
+/* ---------- a star ---------- */
+.node{
+  position:absolute;
+  width:40px;height:40px;
+  transform:translate(-50%,-50%);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  z-index:2;
+  transition:transform .5s cubic-bezier(0.16,1,0.3,1);
+}
+.node:hover{transform:translate(-50%,-50%) scale(1.5)}
+@media (max-width:480px){
+  .node{width:34px;height:34px}
+  .node:hover{transform:translate(-50%,-50%) scale(1.25)}
+}
+.node .core{
+  position:relative;z-index:2;
+  width:26px;height:26px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.20);
+  border:1px solid rgba(255,255,255,0.40);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;
+  color:rgba(255,255,255,0.85);
+  font-family:inherit;
+  transition:all .35s;
+}
+.node .halo{
+  position:absolute;inset:8px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.20);
+  animation:ping 1.9s cubic-bezier(0,0,.2,1) infinite;
+}
+@keyframes ping{
+  0%{transform:scale(1);opacity:.9}
+  80%,100%{transform:scale(2.6);opacity:0}
+}
+.node.done .core{background:rgba(212,175,55,0.28);border-color:#d4af37;color:#fde68a}
+.node.done .halo{display:none}
+/* the star she has to reach next — the only one that is truly "alive" */
+.node.next .core{
+  background:rgba(212,175,55,0.30);
+  border-color:rgba(212,175,55,0.95);
+  color:#fff8e1;
+  box-shadow:0 0 0 4px rgba(212,175,55,0.14),0 0 26px rgba(212,175,55,0.55);
+  animation:breathe 1.6s ease-in-out infinite;
+}
+.node.next .halo{background:rgba(212,175,55,0.35)}
+@keyframes breathe{
+  0%,100%{box-shadow:0 0 0 4px rgba(212,175,55,0.14),0 0 22px rgba(212,175,55,0.45)}
+  50%{box-shadow:0 0 0 9px rgba(212,175,55,0.05),0 0 38px rgba(212,175,55,0.75)}
+}
+.node.wrong{animation:shake .4s}
+@keyframes shake{
+  0%,100%{transform:translate(-50%,-50%)}
+  25%{transform:translate(calc(-50% - 7px),-50%)}
+  75%{transform:translate(calc(-50% + 7px),-50%)}
+}
+
+/* ---------- under the board ---------- */
+#caption{
+  position:absolute;
+  bottom:22px;left:0;right:0;
+  text-align:center;
+  color:rgba(255,255,255,0.40);
+  font-size:13px;
+  letter-spacing:.22em;
+  pointer-events:none;
+  padding:0 12px;
+}
+#progress{
+  margin-top:14px;
+  font-size:.75rem;
+  color:rgba(255,255,255,0.30);
+  letter-spacing:.1em;
+  text-align:center;
+}
+#replay{
+  display:none;
+  margin-top:12px;
+  padding:9px 22px;
+  border-radius:999px;
+  border:1px solid rgba(196,13,116,0.4);
+  background:rgba(196,13,116,0.14);
+  color:#fbcfe8;
+  font-family:inherit;font-size:.8rem;
+  cursor:pointer;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+  transition:all .2s;
+}
+#replay:hover{background:rgba(196,13,116,0.28)}
+#replay.show{display:block}
+
+#winOverlay{
+  display:none;
+  position:fixed;inset:0;
+  background:rgba(5,2,5,0.92);
+  -webkit-backdrop-filter:blur(16px);
+  backdrop-filter:blur(16px);
+  z-index:100;
+  align-items:center;justify-content:center;
+  flex-direction:column;
+  padding:24px;text-align:center;
+}
+#winOverlay.show{display:flex}
+#winOverlay .hearts{font-size:40px;margin-bottom:10px;animation:winFloat 2s ease-in-out infinite}
+@keyframes winFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-8px) scale(1.1)}}
+#winOverlay h2{
+  font-family:Georgia,'Times New Roman',serif;
+  font-size:clamp(1.3rem,5vw,1.9rem);
+  background:linear-gradient(135deg,#fde68a,#d4af37,rgb(196,13,116));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:6px;
+}
+#winOverlay p{font-size:clamp(.85rem,2.5vw,1rem);color:rgba(255,255,255,.75);line-height:1.9;max-width:34ch}
+
+#backBtn{
+  position:fixed;top:16px;right:16px;
+  width:44px;height:44px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,0.1);
+  background:rgba(0,0,0,0.4);
+  -webkit-backdrop-filter:blur(8px);
+  backdrop-filter:blur(8px);
+  color:rgba(255,255,255,0.5);
+  font-size:20px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;z-index:10;
+  font-family:inherit;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+#backBtn:hover{background:rgba(196,13,116,0.15);border-color:rgba(196,13,116,0.3)}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+}
+</style>
+</head>
+<body>
+
+<button id="backBtn" type="button" aria-label="رجوع للموقع">→</button>
+
+<h1>أساطير الحب 🌌</h1>
+<div class="subtitle">— أوصّلي النجوم ببعضها</div>
+
+<!-- the constellation: positions are %, so the shape survives any screen -->
+<div id="board">
+  <svg id="lines" aria-hidden="true"><defs>
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D4AF37"></stop>
+      <stop offset="100%" stop-color="rgb(196, 13, 116)"></stop>
+    </linearGradient>
+  </defs></svg>
+  <!--
+    Order matters — this is the path she has to trace. It sweeps down from the
+    top-left, curves right, then comes back across the bottom, so the finished
+    lines read as a constellation instead of a scribble.
+  -->
+  <div class="node" style="top:21.4126%;left:10.5424%"><div class="core">1</div><div class="halo"></div></div>
+  <div class="node" style="top:45.8781%;left:46.6922%"><div class="core">2</div><div class="halo"></div></div>
+  <div class="node" style="top:51.3097%;left:53.1715%"><div class="core">3</div><div class="halo"></div></div>
+  <div class="node" style="top:79.1778%;left:56.2089%"><div class="core">4</div><div class="halo"></div></div>
+  <div class="node" style="top:68.3874%;left:24.6391%"><div class="core">5</div><div class="halo"></div></div>
+  <div class="node" style="top:59.1480%;left:25.3971%"><div class="core">6</div><div class="halo"></div></div>
+  <div class="node" style="top:52.2479%;left:20.3556%"><div class="core">7</div><div class="halo"></div></div>
+  <div class="node" style="top:52.2403%;left:14.3066%"><div class="core">8</div><div class="halo"></div></div>
+
+  <div id="caption">وصل النجوم ببعضها...</div>
+</div>
+
+<div id="progress">٠ من ٨</div>
+<button id="replay" type="button">من الأول ↻</button>
+
+<div id="winOverlay">
+  <div class="hearts">🤍</div>
+  <h2>وصلتِ 🤍</h2>
+  <div style="width:60px;height:2px;background:linear-gradient(90deg,transparent,rgba(212,175,55,.5),transparent);margin:10px auto"></div>
+  <p>كل نجمة في السما دي ناقصة حد يكمّل وصلها.<br>من غير ما تسألي.</p>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------------------------------------------------------------- nodes --
+     One source of truth: the DOM order *is* the order she has to trace, so a
+     node never disagrees with its number. */
+  var board   = document.getElementById('board');
+  var svg     = document.getElementById('lines');
+  var caption = document.getElementById('caption');
+  var counter = document.getElementById('progress');
+  var replay  = document.getElementById('replay');
+  var overlay = document.getElementById('winOverlay');
+  var nodes   = Array.prototype.slice.call(board.querySelectorAll('.node'));
+
+  var AR_DIGITS = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+  var toArabic  = function (n) { return String(n).split('').map(function (d) { return AR_DIGITS[+d]; }).join(''); };
+
+  var step = 0;                 /* how many stars are already connected        */
+  var drawing = null;           /* <path> of the line she is dragging right now */
+  var from = null;              /* node the drag started on                    */
+  var size = { w: 0, h: 0 };    /* the board's real pixel size                  */
+
+  /* ------------------------------------------------------------------ size --
+     The % positions only mean something once we know how big the board is, and
+     the board changes with the window, the url bar, and orientation. */
+  function measure() {
+    var r = board.getBoundingClientRect();
+    size.w = r.width;
+    size.h = r.height;
+    svg.setAttribute('viewBox', '0 0 ' + Math.round(size.w) + ' ' + Math.round(size.h));
+    redraw();
+  }
+
+  function center(el) {
+    var x = parseFloat(el.style.left)  / 100 * size.w;
+    var y = parseFloat(el.style.top)   / 100 * size.h;
+    return { x: x, y: y };
+  }
+
+  function line(fromEl, toEl) {
+    var a = center(fromEl), b = center(toEl);
+    var d = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    d.setAttribute('d', 'M' + a.x + ' ' + a.y + ' L' + b.x + ' ' + b.y);
+    svg.appendChild(d);
+    return d;
+  }
+
+  /* Re-draw every finished line. Called on resize, so the constellation keeps
+     its shape instead of drifting away from the stars. */
+  function redraw() {
+    var done = svg.querySelectorAll('path:not(.pending)');
+    for (var i = 0; i < done.length; i++) done[i].remove();
+    for (var s = 0; s < step; s++) line(nodes[s], nodes[s + 1]);
+  }
+
+  /* ----------------------------------------------------------------- paint --
+     Exactly one star is "next" at a time. Everything else is either finished
+     or waiting — the board always shows her where to go, so she can never get
+     stuck and never has to guess. */
+  function paint() {
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].classList.toggle('done', i < step);
+      nodes[i].classList.toggle('next', i === step);
+    }
+    counter.textContent = toArabic(step) + ' من ' + toArabic(nodes.length);
+    if (step === nodes.length) {
+      caption.textContent = 'وصلكي 🤍';
+      caption.style.color = 'rgba(212,175,55,0.75)';
+    }
+  }
+
+  function connect(fromIndex) {
+    line(nodes[fromIndex], nodes[fromIndex + 1]);
+    step = fromIndex + 1;
+    paint();
+    if (step === nodes.length) {
+      caption.textContent = 'وصلكي 🤍';
+      overlay.classList.add('show');
+      replay.classList.add('show');
+    }
+  }
+
+  /* -------------------------------------------------------------- gestures --
+     Pointer events cover mouse, touch and stylus with one code path.
+     `setPointerCapture` keeps the drag alive when her finger slides off the
+     star, which is the normal way a finger behaves on a phone. */
+  function nodeAt(x, y) {
+    for (var i = 0; i < nodes.length; i++) {
+      var r = nodes[i].getBoundingClientRect();
+      var pad = 8;   /* a finger is wider than a 26px dot */
+      if (x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad) return i;
+    }
+    return -1;
+  }
+
+  function cancelDrag() {
+    if (drawing) drawing.remove();
+    drawing = null;
+    from = null;
+  }
+
+  board.addEventListener('pointerdown', function (e) {
+    if (step >= nodes.length) return;
+    var i = nodeAt(e.clientX, e.clientY);
+    if (i !== step) {
+      /* a wrong star: nudge, never punish */
+      if (i > -1) {
+        nodes[i].classList.remove('wrong');
+        void nodes[i].offsetWidth;      /* restart the animation */
+        nodes[i].classList.add('wrong');
+      }
+      return;
+    }
+    from = i;
+    board.setPointerCapture && board.setPointerCapture(e.pointerId);
+    drawing = line(nodes[i], nodes[i + 1]);
+    drawing.classList.add('pending');
+    e.preventDefault();
+  });
+
+  board.addEventListener('pointermove', function (e) {
+    if (!drawing || !from) return;
+    var a = center(nodes[from]);
+    drawing.setAttribute('d', 'M' + a.x + ' ' + a.y + ' L' + e.clientX + ' ' + e.clientY);
+    e.preventDefault();
+  });
+
+  function release(e) {
+    if (!drawing || from === null) return;
+    var i = nodeAt(e.clientX, e.clientY);
+    if (i === step + 1) {
+      drawing.remove();
+      drawing = null;
+      connect(from);
+    } else {
+      cancelDrag();      /* released on empty space or the wrong star */
+    }
+    from = null;
+  }
+  board.addEventListener('pointerup', release);
+  board.addEventListener('pointercancel', cancelDrag);
+
+  /* Keyboard + a tap on the star itself: pressing the glowing star without
+     dragging anywhere is treated as "connect it for me", so the game is
+     always completable no matter how fussy the touchscreen is. */
+  nodes.forEach(function (el, i) {
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); advance(i); }
+    });
+  });
+  function advance(i) {
+    if (i === step) connect(step);
+  }
+
+  replay.addEventListener('click', function () {
+    step = 0;
+    cancelDrag();
+    redraw();
+    paint();
+    caption.textContent = 'وصل النجوم ببعضها...';
+    caption.style.color = '';
+    overlay.classList.remove('show');
+    replay.classList.remove('show');
+  });
+
+  document.getElementById('backBtn').addEventListener('click', function () {
+    /* relative, never `/` — the site lives in a sub-path (/Sarah-/) and an
+       absolute link would drop the visitor on the GitHub profile. */
+    if (window.opener && !window.opener.closed) { window.opener.focus(); window.close(); return; }
+    window.location.href = './';
+  });
+
+  overlay.addEventListener('click', function () { overlay.classList.remove('show'); });
+
+  /* give every node its number from its position in the list */
+  nodes.forEach(function (el, i) {
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    el.setAttribute('aria-label', 'نجمة رقم ' + toArabic(i + 1));
+    el.querySelector('.core').textContent = toArabic(i + 1);
+  });
+
+  if (typeof ResizeObserver === 'function') {
+    new ResizeObserver(measure).observe(board);
+  }
+  window.addEventListener('resize', measure);
+  window.addEventListener('orientationchange', function () { setTimeout(measure, 250); });
+
+  paint();
+  measure();
+})();
+</script>
+</body>
+</html>

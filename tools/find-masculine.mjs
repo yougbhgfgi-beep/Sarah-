@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const FILES = ['config.js', 'maze.html', 'index.html', 'install.js'];
+const FILES = ['config.js', 'game.html', 'index.html', 'install.js'];
 
 /* longest first so "معاكي" is not reported as "معاك" */
 const PAIRS = [

@@ -62,12 +62,80 @@
          (لو خليت الرسالة رمز واحد زي قلب، ارفع الرقم لـ 4rem
           وشيل الجملتين اللي تحته عشان يبقى في النص.) */
       .letter-body {
-        font-size: 15px;
+        font-size: 13px;
+        line-height: 1.9;
       }
       @media (min-width: 640px) {
         .letter-body {
-          font-size: 16px;
+          font-size: 15px;
         }
+      }
+
+      /* الرسالة بقت طويلة، فعلى الموبايل كانت بتطلع بره الشاشة من غير
+         أي طريقة تقراها. الكارت اللي جواها بقى منطقة تمرير مستقلة:
+         الـ scroll بتاع الرسالة مش بيحرّك الصفحة، وبتقفل بـ contain
+         عشان السحب جوه الرسالة مايعملش scroll-iPhone rubber-band. */
+      .letter-body {
+        -webkit-overflow-scrolling: touch;
+      }
+      div:has(> p.letter-body) {
+        max-height: min(48vh, 420px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        /* شريط تمرير رفيع وناعم — الرسالة عربي، فالسهم الافتراضي مقلوب */
+        scrollbar-width: thin;
+        scrollbar-color: rgba(244, 63, 94, 0.35) transparent;
+        /* hint that there is more below, so the cut-off text is not a mystery */
+        mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 18px), transparent 100%);
+        -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 18px), transparent 100%);
+      }
+      div:has(> p.letter-body)::-webkit-scrollbar { width: 4px; }
+      div:has(> p.letter-body)::-webkit-scrollbar-thumb {
+        background: rgba(244, 63, 94, 0.35);
+        border-radius: 99px;
+      }
+      div:has(> p.letter-body)::-webkit-scrollbar-track { background: transparent; }
+      @media (min-width: 640px) {
+        div:has(> p.letter-body) { max-height: min(56vh, 520px); }
+      }
+
+      /* زراري التمرير — بيظهروا بس والرسالة مفتوحة. */
+      #letterNav {
+        position: fixed;
+        inset-inline: 0;
+        z-index: 60;
+        display: none;
+        flex-direction: column;
+        gap: 10px;
+        pointer-events: none;
+      }
+      #letterNav.on { display: flex; }
+      #letterNav button {
+        pointer-events: auto;
+        width: 46px;
+        height: 46px;
+        margin-inline: auto;
+        border-radius: 50%;
+        border: 1px solid rgba(244, 63, 94, 0.3);
+        background: rgba(13, 5, 8, 0.75);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        color: #fda4af;
+        font-size: 18px;
+        line-height: 1;
+        cursor: pointer;
+        font-family: inherit;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        transition: opacity 0.25s, transform 0.25s, background 0.2s;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+      }
+      #letterNav button:hover { background: rgba(196, 13, 116, 0.3); }
+      #letterNav button[hidden] { display: none; }
+      #letterNav .up { top: calc(14px + env(safe-area-inset-top, 0px)); }
+      #letterNav .down { bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
+      @media (prefers-reduced-motion: reduce) {
+        #letterNav button { transition: none; }
       }
     </style>
 
@@ -103,9 +171,10 @@
     </script>
 
     <!-- ===== app ===== -->
-    <script src="./config.js?v=8.1.8"></script>
-    <script src="./install.js?v=8.1.8" defer></script>
-    <script type="module" crossorigin src="./assets/app.js?v=8.1.8"></script>
+    <script src="./config.js?v=8.2.0"></script>
+    <script src="./install.js?v=8.2.0" defer></script>
+    <script src="./letter-nav.js?v=8.2.0" defer></script>
+    <script type="module" crossorigin src="./assets/app.js?v=8.2.0"></script>
     <link rel="stylesheet" crossorigin href="./assets/app.css?v=8.1.8" />
   </head>
   <body>

@@ -18,6 +18,11 @@ const read = (f) => readFileSync(join(root, f), 'utf8');
 const CFG = read('config.js');
 const APP = read('assets/app.js');
 
+/* the shipped version, read from sw.js — the single source of truth for the
+   cache-buster. every `?v=` in index.html has to agree with it, or a visitor
+   keeps getting a stale file after an update. */
+const VERSION = read('sw.js').match(/APP_VERSION\s*=\s*'v([\d.]+)'/)?.[1];
+
 /**
  * the app's built-in defaults, straight out of the bundle.
  * tests that check the fallback path read their expectations from here, so
@@ -190,8 +195,26 @@ const check = (name, ok) => results.push([name, ok]);
 
     /* the size of the letter text is a CSS knob in index.html (.letter-body),
        not a Tailwind class, so assert the class survives in the DOM. */
-    check('letter text uses the .letter-body size knob',
-      !!q(window, 'p.letter-body'));
+    const letterP = q(window, 'p.letter-body');
+    check('letter text uses the .letter-body size knob', !!letterP);
+
+    /* letter-nav.js finds the scrollable card by walking UP from the letter,
+       so that relationship is a contract between the two files. if the card
+       wrapper ever changes, the scroll buttons silently stop working and the
+       long letter goes back to being cut off with no way to read it. */
+    check('the letter has a scrollable card above it (letter-nav.js contract)',
+      !!letterP && !!letterP.parentElement);
+
+    /* the buttons only exist once letter-nav.js runs, and that window never
+       loads external scripts — so assert the wiring instead: the file is
+       referenced, it is deferred (so it cannot block the first paint), and it
+       is cache-busted with the rest. section 8 below runs the file for real. */
+    const indexHtml = read('index.html');
+    const navTag = indexHtml.match(/<script[^>]*src="\.\/letter-nav\.js\?v=([\d.]+)"[^>]*>/);
+    check('index.html loads letter-nav.js deferred and versioned',
+      !!navTag && /defer/.test(navTag[0]) && navTag[1] === VERSION);
+    check('the letter-nav.js version matches sw.js APP_VERSION',
+      navTag && navTag[1] === (read('sw.js').match(/APP_VERSION\s*=\s*'v([\d.]+)'/)?.[1]));
 
     const openBtn = [...window.document.querySelectorAll('button')].find((b) =>
       b.textContent.includes(D.envelope.buttonText)
@@ -234,7 +257,7 @@ const check = (name, ok) => results.push([name, ok]);
     if (emptyPs.length > 0) {
       for (const p of emptyPs) console.log(`    empty: <p class="${p.className}">`);
     }
-    check('maze section from config.js', t.includes(D.ui.mazeEyebrow) && t.includes(D.ui.mazeButton));
+    check('game section from config.js', t.includes(D.ui.gameEyebrow) && t.includes(D.ui.gameButton));
     check('counter units from config.js', t.includes(D.ui.timeUnits[0]) && t.includes(D.ui.timeUnits[3]));
     check('no love-confession wording on screen',
       !/بحبك|حبيبك|حبيبتي|أحبك|عشيق/.test([...seen].join('\n')));
@@ -353,6 +376,81 @@ const check = (name, ok) => results.push([name, ok]);
     check('a dismissed visitor is not asked again', !shown(w));
     check('install.js runs clean on ios', errs.length === 0);
   }
+}
+
+/* ---------- 8. letter-nav.js: the letter scroll buttons ----------
+   a separate file, so nothing in the app test above proves it parses or that
+   it survives the letter being opened and closed. it is a MutationObserver
+   plus a rAF loop, and a rAF loop is exactly the kind of thing that throws
+   on an unexpected DOM shape — so it gets its own window. */
+{
+  const navSrc = read('letter-nav.js');
+  const errs = [];
+  const vc = new VirtualConsole();
+  vc.on('jsdomError', (e) => errs.push(String(e.stack || e.message)));
+  vc.on('error', (...a) => errs.push('letter-nav console.error: ' + a.join(' ')));
+
+  const html = read('index.html')
+    .replace(/<script[^>]*src="[^"]*"[^>]*><\/script>/g, '')
+    .replace(/<link[^>]*>/g, '')
+    .replace(/<script[\s\S]*?<\/script>/g, '');
+  const d = new JSDOM(html, {
+    url: 'https://example.github.io/Sarah-/',
+    runScripts: 'outside-only',
+    pretendToBeVisual: true,
+    virtualConsole: vc,
+  });
+  const w = d.window;
+  const doc = w.document;
+
+  w.eval(navSrc);
+  await wait(200);
+  check('letter-nav.js runs with no letter on screen', errs.length === 0);
+  check('letter-nav.js hides itself with no letter open',
+    !doc.getElementById('letterNav').classList.contains('on'));
+
+  /* mount a fake letter exactly the way the bundle does: a <p> with the
+     .letter-body class inside the card letter-nav.js walks up to */
+  const root = doc.getElementById('root') || doc.body.appendChild(doc.createElement('div'));
+  root.id = 'root';
+  const card = doc.createElement('div');
+  const p = doc.createElement('p');
+  p.className = 'text-rose-200 letter-body';
+  p.textContent = 'كلام طويل';
+  card.appendChild(p);
+  root.appendChild(card);
+
+  /* jsdom has no layout, so scrollHeight/clientHeight are 0 and the code
+     would conclude "nothing to scroll". give it the real numbers a phone
+     would report for a long letter. */
+  Object.defineProperty(card, 'scrollHeight', { value: 1200, configurable: true });
+  Object.defineProperty(card, 'clientHeight', { value: 400, configurable: true });
+  Object.defineProperty(card, 'scrollTop', { value: 0, writable: true, configurable: true });
+  let scrolledTo = 0;
+  card.scrollBy = (o) => { scrolledTo += o.top; card.scrollTop += o.top; };
+
+  const nav = doc.getElementById('letterNav');
+  const up = nav.querySelector('.up');
+  const down = nav.querySelector('.down');
+
+  /* the observer is async — a microtask, not the 200ms we already waited */
+  await wait(60);
+  check('letter-nav.js appears when a scrollable letter is open', nav.classList.contains('on'));
+  check('the up button is hidden at the top of the letter', up.hidden === true);
+  check('the down button is available at the top', down.hidden === false);
+
+  down.click();
+  await wait(700);
+  check('the down button scrolls the letter', scrolledTo > 0);
+  check('letter-nav.js runs clean while the letter is open', errs.length === 0);
+
+  /* closing the letter must take the buttons away again */
+  root.removeChild(card);
+  await wait(60);
+  check('letter-nav.js disappears when the letter closes', !nav.classList.contains('on'));
+  check('letter-nav.js runs clean after the letter closes', errs.length === 0);
+
+  w.close();
 }
 
 /* ---------- report ---------- */

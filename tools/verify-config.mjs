@@ -9,6 +9,10 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import vm from 'node:vm';
+import { findAsserted } from './negation.mjs';
+
+/* the same list tools/audit-content.mjs uses — one source of truth */
+const ROMANCE_WORDS = ['بحبك', 'أحبك', 'حبيبك', 'حبيبتي', 'عشيق'];
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (f) => readFileSync(join(root, f), 'utf8');
@@ -136,7 +140,7 @@ const checks = [
   ['ui.timerNote has 2 lines', Array.isArray(defaults.ui?.timerNote) && defaults.ui.timerNote.length === 2],
   ['ui.timeUnits has 5 units', Array.isArray(defaults.ui?.timeUnits) && defaults.ui.timeUnits.length === 5],
   ['ui plain strings are non-empty',
-    ['brand', 'mazeEyebrow', 'mazeTitle', 'mazeButton', 'mazeButtonHint', 'endLabel', 'musicPlay', 'musicPause']
+    ['brand', 'gameEyebrow', 'gameTitle', 'gameButton', 'gameButtonHint', 'endLabel', 'musicPlay', 'musicPause']
       .every((k) => typeof defaults.ui?.[k] === 'string' && defaults.ui[k].trim().length > 0)],
   ['letter heading and sign-off present',
     typeof defaults.envelope?.letterTitle === 'string' &&
@@ -144,8 +148,21 @@ const checks = [
   ['login placeholder and caption present',
     typeof defaults.login?.placeholder === 'string' &&
       typeof defaults.login?.caption === 'string'],
-  ['no love-confession wording anywhere in the config',
-    !/بحبك|أحبك|حبيبك|حبيبتي|عشيق/.test(JSON.stringify(defaults))],
+  /* the site is about admiration, not a love confession, so an assertive
+     "بحبك" must never appear. but a NEGATED one is the opposite of a
+     confession and the letter says it on purpose ("ولا أدّعي إني بحبك").
+     dropping the check was not an option — it is the one rule that keeps the
+     tone honest — so each hit is read in context and only a confession that
+     is actually being asserted fails. see tools/negation.mjs. */
+  ...(() => {
+    const text = JSON.stringify(defaults);
+    const asserted = findAsserted(text, ROMANCE_WORDS);
+    return [[
+      'no *asserted* love-confession wording anywhere in the config',
+      asserted.length === 0,
+      asserted.length ? asserted.map((a) => `"${a.word}" x${a.count} — ${a.sample}`).join(' | ') : '',
+    ]];
+  })(),
 
   /* ---- everything on this site is addressed to one person: a woman ----
      the tokens are unambiguously masculine second-person forms. "انت",

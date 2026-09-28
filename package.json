@@ -1,6 +1,6 @@
 {
   "name": "sara",
-  "version": "8.0.1",
+  "version": "8.2.0",
   "private": true,
   "description": "كلام من محمد لساره — موقع ثابت (HTML + React bundle + PWA)",
   "type": "module",
@@ -9,7 +9,8 @@
     "version:bump": "node tools/bump-version.mjs patch",
     "version:bump:minor": "node tools/bump-version.mjs minor",
     "version:bump:major": "node tools/bump-version.mjs major",
-    "check": "node --check assets/app.js && node --check config.js && node --check sw.js && node --check install.js",
+    "check": "node --check assets/app.js && node --check config.js && node --check sw.js && node --check install.js && node --check letter-nav.js",
+    "test:negation": "node tools/negation.test.mjs",
     "icons": "node tools/make-icons.mjs",
     "patch": "node tools/patch-strings.mjs",
     "patch:structure": "node tools/patch-structure.mjs",
@@ -18,9 +19,10 @@
     "strings": "node tools/list-strings.mjs",
     "probe:audio": "node tools/probe-audio.mjs",
     "deploy:url": "node tools/set-deploy-url.mjs",
+    "pages:on": "node tools/enable-pages.mjs",
     "verify": "node tools/verify-config.mjs",
-    "test": "npm run check && npm run audit && npm run verify && npm run check:maze && npm run test:boot",
-    "check:maze": "node tools/check-maze.mjs",
+    "test": "npm run check && npm run test:negation && npm run audit && npm run verify && npm run check:game && npm run test:boot",
+    "check:game": "node tools/check-game.mjs",
     "test:boot": "node tools/boot-test.mjs"
   },
   "engines": {

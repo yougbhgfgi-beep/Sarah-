@@ -100,6 +100,29 @@ const PATCHES = [
     find: 'value:n.years,color:"text-rose-400"',
     replace: 'value:n.months,color:"text-rose-400"',
   },
+
+  /* ---------------------------------------------------------------------
+     the maze was replaced by the "connect the stars" game. the config keys
+     were renamed with it (mazeEyebrow -> gameEyebrow …) so config.js does not
+     lie about what the section is, which means the four reads in the bundle
+     have to be renamed to match. one patch, one list, so the four can never
+     drift apart.
+     --------------------------------------------------------------------- */
+  ...['Eyebrow', 'Title', 'Button', 'ButtonHint'].map((suffix) => ({
+    what: `game section: config key maze${suffix} -> game${suffix}`,
+    /* the closing brace is part of the needle on purpose: without it
+       `mazeButton` also matches inside `mazeButtonHint` and the guard
+       (1 match) rejects the patch. */
+    find: `Dt.ui.maze${suffix}}`,
+    replace: `Dt.ui.game${suffix}}`,
+  })),
+  {
+    /* the play button opened the maze. it now opens the star game.
+       the path stays relative — the site is served from /Sarah-/. */
+    what: 'game section: the play button opens game.html, not maze.html',
+    find: "window.open('maze.html','_blank')",
+    replace: "window.open('game.html','_blank')",
+  },
 ];
 
 const src = readFileSync(BUNDLE, 'utf8');

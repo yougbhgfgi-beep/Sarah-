@@ -12,6 +12,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import vm from 'node:vm';
+import { findAsserted } from './negation.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (f) => readFileSync(join(root, f), 'utf8');
@@ -47,15 +48,15 @@ for (let i = brace; i < bundle.length; i++) {
 const bundleCfgSrc = bundle.slice(brace, end + 1);
 const bundleCfg = vm.runInNewContext(`(${bundleCfgSrc})`);
 
-for (const w of STALE_WORDS) {
-  if (bundleCfgSrc.includes(w)) note('assets/app.js (defaults)', w, '');
+/* the bundled defaults are prose, so a negated "بحبك" is fine there */
+for (const { word, count } of findAsserted(bundleCfgSrc, STALE_WORDS)) {
+  note('assets/app.js (defaults)', word, ` x${count}`);
 }
 
 /* ---------- 2. strings hardcoded in components (unreachable by config) ---------- */
 const componentCode = bundle.slice(0, cfgStart);
-for (const w of STALE_WORDS.concat(ROMANCE_WORDS)) {
-  const n = componentCode.split(w).length - 1;
-  if (n) note('assets/app.js (hardcoded in a component)', w, ` x${n}`);
+for (const { word, count } of findAsserted(componentCode, STALE_WORDS.concat(ROMANCE_WORDS))) {
+  note('assets/app.js (hardcoded in a component)', word, ` x${count}`);
 }
 
 /* ---------- 2b. no Arabic string may live in a component at all ----------
@@ -99,11 +100,11 @@ while ((ref = refRe.exec(componentCode))) {
 
 /* ---------- 3. config.js ---------- */
 const cfgSrc = read('config.js');
-for (const w of STALE_WORDS) {
-  if (cfgSrc.includes(w)) note('config.js', w, '');
+for (const { word, count, sample } of findAsserted(cfgSrc, STALE_WORDS)) {
+  note('config.js', word, sample ? ` x${count} — ${sample}` : ` x${count}`);
 }
-for (const w of ROMANCE_WORDS) {
-  if (cfgSrc.includes(w)) note('config.js', w, ' — direct love wording');
+for (const { word, count, sample } of findAsserted(cfgSrc, ROMANCE_WORDS)) {
+  note('config.js', word, ` x${count} — asserted love wording${sample ? `: ${sample}` : ''}`);
 }
 
 const sandbox = { window: {} };
