@@ -221,8 +221,10 @@ npm run check:game
 ```bash
 npm run version:bump
 ```
-بيرفع النسخة في `sw.js` **و** `index.html` مع بعض. من غيرها الـ service worker هيفضل يقدّم النسخة القديمة.
+بيرفع النسخة في `sw.js` **و** `index.html` **و** `package.json` مع بعض. من غيرها الـ service worker هيفضل يقدّم النسخة القديمة.
 (تعديلات `config.js` بتمشي من غير — لأنها أول حاجة بيتحدّث فيها الـ network-first.)
+
+`npm test` بيتأكد إن الأربعة متساويين، فلو نسيت الـ bump هيقولك.
 
 ---
 

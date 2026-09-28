@@ -124,6 +124,23 @@ const q = (window, sel) => window.document.querySelector(sel);
 const results = [];
 const check = (name, ok) => results.push([name, ok]);
 
+/* ---------- 0. version consistency ----------
+   This runs first and unconditionally, before anything that depends on it.
+   The letter-nav version check further down lives inside a conditional block,
+   so a drift here would otherwise go unreported on a broken boot. */
+{
+  const html = read('index.html');
+  const refs = [...html.matchAll(/\?v=([\d.]+)/g)].map((m) => m[1]);
+  const pkgVersion = JSON.parse(read('package.json')).version;
+
+  check('sw.js carries a parseable APP_VERSION', /^\d+\.\d+\.\d+$/.test(VERSION || ''));
+  check(`index.html has at least one ?v= token (found ${refs.length})`, refs.length > 0);
+  check('every ?v= in index.html matches sw.js APP_VERSION',
+    refs.length > 0 && refs.every((v) => v === VERSION));
+  check(`package.json version matches sw.js APP_VERSION (${pkgVersion} vs ${VERSION})`,
+    pkgVersion === VERSION);
+}
+
 /* ---------- 1. clean boot ---------- */
 {
   const { window, errors } = boot();

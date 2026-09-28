@@ -2,11 +2,18 @@
 /**
  * bumps the cache version in one shot.
  *
- * the app has THREE places that must move together or users keep
+ * the app has FOUR places that must move together or users keep
  * seeing stale content:
  *   1. sw.js            -> APP_VERSION
- *   2. index.html       -> ?v= on config.js / app.js / app.css
- *   3. manifest.json    -> (nothing today, kept here for future edits)
+ *   2. index.html       -> ?v= on config.js / app.js / app.css / every widget
+ *   3. package.json     -> version (cosmetic, but it is what `npm` prints,
+ *                         and a package.json that lies about its own version
+ *                         is worse than no package.json at all)
+ *   4. manifest.json    -> (nothing today, kept here for future edits)
+ *
+ * package.json used to be missed, so it sat at 8.3.0 while the site was on
+ * 8.3.1 and nobody noticed for a while. `npm run test:boot` now asserts all
+ * of them agree, so the drift cannot come back.
  *
  * run after every deploy:   npm run version:bump
  */
@@ -51,8 +58,20 @@ const refs = html.match(/\?v=[^"')\s]+/g) || [];
 const bumpedHtml = html.replace(/\?v=[^"')\s]+/g, `?v=${next.replace(/^v/, '')}`);
 write('index.html', bumpedHtml);
 
+// 3. package.json -> "version". replaced once and only if it is the real
+//    top-level key, so a dependency that happens to pin a matching string
+//    cannot be rewritten by accident.
+const pkg = read('package.json');
+const bare = next.replace(/^v/, '');
+const bumpedPkg = pkg.replace(/("version"\s*:\s*")(\d+\.\d+\.\d+)(")/, `$1${bare}$3`);
+if (bumpedPkg === pkg) {
+  console.warn('  WARNING: no top-level "version" in package.json — not bumped');
+}
+write('package.json', bumpedPkg);
+
 console.log(`version ${current} -> ${next}`);
 console.log(`  sw.js        APP_VERSION = '${next}'`);
 console.log(`  index.html   ?v=${next.replace(/^v/, '')} (${refs.length} refs)`);
 if (!refs.length) console.warn('  WARNING: no ?v= tokens found in index.html');
+console.log(`  package.json version = '${bare}'`);
 console.log('\ndeploy now. users get the update on next page load.');
