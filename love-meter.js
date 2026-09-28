@@ -155,7 +155,13 @@
 
   function paint() {
     fill.style.width = shown + '%';
-    num.textContent = (shown > 0 ? shown : '') + (shown > 0 ? '%' : '');
+    /* `result` is a verdict rather than a measurement — "infinite" has no
+       percentage — so when config supplies one it replaces the number in the
+       big line. The bar still counts to `value`, and the empty-before-press
+       rule is unchanged: nothing shows until the count actually starts. */
+    num.textContent = shown > 0
+      ? (cfg.result || shown + '%')
+      : '';
   }
 
   var revealed = false;

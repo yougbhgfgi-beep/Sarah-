@@ -207,7 +207,9 @@
         min-height: 1.5rem; /* الرقم فاضي لحد ما تضغطي — والـ svg مكانش ينط */
       }
       .lm-readout svg { width: 1.25rem; height: 1.25rem; }
-      .lm-num { font-size: 0.875rem; font-weight: 700; min-width: 2.2ch; }
+      /* the readout is a short phrase now, not a number — a touch bigger, and a
+         line-height so a long verdict wraps instead of clipping */
+      .lm-num { font-size: 0.95rem; font-weight: 700; line-height: 1.5; min-width: 2.2ch; }
 
       .lm-track {
         height: 2.5rem;
@@ -526,13 +528,13 @@
     </script>
 
     <!-- ===== app ===== -->
-    <script src="./config.js?v=8.3.4"></script>
-    <script src="./install.js?v=8.3.4" defer></script>
-    <script src="./letter-nav.js?v=8.3.4" defer></script>
-    <script src="./love-meter.js?v=8.3.4" defer></script>
-    <script src="./game-overlay.js?v=8.3.4" defer></script>
-    <script type="module" crossorigin src="./assets/app.js?v=8.3.4"></script>
-    <link rel="stylesheet" crossorigin href="./assets/app.css?v=8.3.4" />
+    <script src="./config.js?v=8.3.7"></script>
+    <script src="./install.js?v=8.3.7" defer></script>
+    <script src="./letter-nav.js?v=8.3.7" defer></script>
+    <script src="./love-meter.js?v=8.3.7" defer></script>
+    <script src="./game-overlay.js?v=8.3.7" defer></script>
+    <script type="module" crossorigin src="./assets/app.js?v=8.3.7"></script>
+    <link rel="stylesheet" crossorigin href="./assets/app.css?v=8.3.7" />
   </head>
   <body>
     <div id="root"></div>

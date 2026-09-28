@@ -65,6 +65,13 @@ const RULES = [
    /pointercancel/.test(js)],
   ['there is always a way out (a close control and the Escape key)',
    /key === 'Escape'/.test(js) && /gm-close/.test(html)],
+  /* It used to open by itself the first time the hero screen appeared, and that
+     was too much: uninvited, in the face. The only way in is the play button.
+     A polling timer is the shape that did it, so the rule names that shape. */
+  ['the game does not open itself (no self-opening timer or observer)',
+   !/autoOpened|maybeAutoOpen|setInterval/.test(js)],
+  ['the only way in is window.SarahGame.open()',
+   /window\.SarahGame\s*=\s*\{\s*open:\s*openOverlay/.test(js)],
   ['the game closes itself when the last star is connected',
    /winTimer\s*=\s*setTimeout/.test(js)],
   ['a stray pointer capture cannot throw on an element that rejects it',

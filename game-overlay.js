@@ -379,29 +379,15 @@
     visualViewport.addEventListener('resize', measure);
   }
 
-  /* ============================================================== auto-open ==
-     She asked for the game to open on its own instead of behind a button. It
-     fires once, the first time the hero screen exists — not on every trip back
-     to it, because a dialog that re-opens every time you navigate is hostile. */
-  var autoOpened = false;
-  function maybeAutoOpen() {
-    if (autoOpened || !root.querySelector('section')) return;
-    autoOpened = true;
-    openOverlay();
-  }
-  var poll = setInterval(function () {
-    if (autoOpened) { clearInterval(poll); return; }
-    maybeAutoOpen();
-  }, 250);
-
-  /* Paint before the first frame. Without this the board opens with an empty
-     counter and no glowing star, which reads as a dead board and leaves her
-     with no idea which star to start from. */
+  /* Paint before the first frame, so the board is never caught with an empty
+     counter and no glowing star — that reads as a dead board and leaves her no
+     idea which star to start from. */
   paint();
 
-  /* in case the hero screen is already on screen (a warm bfcache restore, a
-     reload that lands past the envelope) — otherwise the poll above gets it */
-  maybeAutoOpen();
+  /* NO auto-open. The game used to open by itself the first time the hero
+     screen appeared; it was too much, uninvited, in the face. She opens it on
+     purpose now — via the play button, which is the only caller of open().
+     Do not add a timer back here. */
 
   /* the contract the bundle's play button calls */
   window.SarahGame = { open: openOverlay, close: closeOverlay };

@@ -557,10 +557,18 @@ const check = (name, ok) => results.push([name, ok]);
     const target = D.loveMeter.randomize
       ? null
       : Math.max(0, Math.min(100, Number(D.loveMeter.value) || 0));
-    check('the number is revealed from config.js',
-      target === null
-        ? /^\d{1,3}%$/.test(meter.querySelector('.lm-num').textContent)
-        : meter.querySelector('.lm-num').textContent === `${target}%`);
+    /* `result` is a verdict, not a measurement, so when it is set it replaces
+       the percentage in the readout. The bar still counts to `value` either
+       way — only the big line changes. */
+    const want = D.loveMeter.result || (target === null ? null : `${target}%`);
+    check(want
+      ? 'the verdict comes from config.js'
+      : 'the number is revealed from config.js',
+      want
+        ? meter.querySelector('.lm-num').textContent === want
+        : /^\d{1,3}%$/.test(meter.querySelector('.lm-num').textContent));
+    check('the result line is still not empty after the press',
+      meter.querySelector('.lm-num').textContent.length > 0);
     check('the bar filled to the same number',
       target === null
         ? /^\d{1,3}%$/.test(meter.querySelector('.lm-fill').style.width)
@@ -582,9 +590,9 @@ const check = (name, ok) => results.push([name, ok]);
 
 /* ---------- 10. game-overlay.js: the in-page star game ----------
    The game moved out of a standalone page and into a dialog on the hero screen,
-   which changed everything that can break: it opens on its own, it locks the
-   page behind it, it draws lines from percentages, and it closes itself on the
-   last star. Each of those gets a check here.
+   which changed everything that can break: it locks the page behind it, it
+   draws lines from percentages, and it closes itself on the last star. Each of
+   those gets a check here — plus the rule that it must NOT open by itself.
 
    jsdom has no layout engine, so every measurement the game depends on is
    faked — `getBoundingClientRect` on the board and the stars. Without this the
@@ -640,7 +648,7 @@ const check = (name, ok) => results.push([name, ok]);
     });
   }
 
-  /* ---- walk the real flow; the game opens by itself on the hero ---- */
+  /* ---- walk the real flow, all the way to the hero screen ---- */
   const input = q(window, 'input[type="password"], input');
   type(window, input, 'love');
   await wait(150);
@@ -654,9 +662,26 @@ const check = (name, ok) => results.push([name, ok]);
     openBtn.click();
     await waitFor(window, has(window, D.main.heroSubtitle), 'hero');
   }
-  await wait(600);   /* the auto-open polls at 250ms */
+  await wait(1200);   /* 2× the 250ms the old auto-open polled at, plus slack */
 
-  check('the game opens by itself on the hero screen', overlay.hidden === false);
+  /* The regression that matters: the game used to open by itself the moment the
+     hero screen appeared, which was too much — uninvited, in the face. Waiting
+     well past the old poll interval must find it closed. */
+  check('the game does NOT open by itself on the hero screen', overlay.hidden === true);
+  check('and the page behind is not locked', !doc.documentElement.classList.contains('gm-open'));
+  check('and it has not stolen focus',
+    doc.activeElement !== overlay.querySelector('.gm-close'));
+
+  /* ---- now the only way in: the play button ---- */
+  const playBtn = [...doc.querySelectorAll('button')].find((b) =>
+    b.textContent.includes(D.ui.gameButton)
+  );
+  check('the hero screen has the play button', !!playBtn);
+  if (playBtn) {
+    playBtn.click();
+    await wait(80);
+  }
+  check('pressing it opens the game', overlay.hidden === false);
   check('opening it locks the page behind it',
     doc.documentElement.classList.contains('gm-open'));
   check('the close control takes focus when it opens',
