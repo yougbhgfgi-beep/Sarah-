@@ -400,7 +400,7 @@
   paint();
 
   /* in case the hero screen is already on screen (a warm bfcache restore, a
-     reload that lands past the envelope) — otherwise the poll below gets it */
+     reload that lands past the envelope) — otherwise the poll above gets it */
   maybeAutoOpen();
 
   /* the contract the bundle's play button calls */
