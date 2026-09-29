@@ -1,0 +1,239 @@
+﻿
+> sara@8.3.8 test
+> npm run check && npm run test:negation && npm run audit && npm run verify && npm run check:game && npm run test:boot
+
+
+> sara@8.3.8 check
+> node --check assets/app.js && node --check config.js && node --check sw.js && node --check install.js && node --check letter-nav.js && node --check love-meter.js && node --check game-overlay.js
+
+
+> sara@8.3.8 test:negation
+> node tools/negation.test.mjs
+
+ok    a denied "╪ذ╪ص╪ذ┘â" is not a confession
+ok    the real letter sentence survives the full word list
+ok    an asserted "╪ذ╪ص╪ذ┘â" is a confession
+ok    a confession at the start of a line is caught
+ok    a confession after a bare waw is caught
+ok    a negator in an earlier sentence does not excuse a later confession
+ok    a comma-separated confession is its own clause and still caught
+ok    leading negator
+ok    trailing negator
+ok    ┘àظخ╪┤ negation sandwiching the word
+ok    ┘ê┘╪د + ╪ث╪»┘è╪╣┘è
+ok    a diacritic after the word is still reported (conservative)
+ok    a longer word containing the needle is still reported
+ok    negated "╪ص╪ذ┘è╪ذ╪ز┘è"
+ok    asserted "╪ص╪ذ┘è╪ذ╪ز┘è"
+ok    sanity: asserted "╪ث╪ص╪ذ┘â" is caught
+ok    negated "╪ث╪ص╪ذ┘â"
+ok    css token found
+ok    only real tokens reported
+ok    tokens are not negation-filtered
+ok    findAsserted counts every asserted hit
+ok    findAsserted returns a sample clause
+ok    empty text
+ok    empty word
+ok    null text
+
+negation.mjs: all tests passed
+
+> sara@8.3.8 audit
+> node tools/audit-content.mjs
+
+clean ظ¤ no leftovers, defaults match config.js, all files exist
+
+> sara@8.3.8 verify
+> node tools/verify-config.mjs
+
+PASS  dates stay Date objects
+PASS  date value preserved
+PASS  login section intact (not wiped)
+PASS  nested merge kept siblings
+PASS  gallery array replaced as a unit
+PASS  gallery images resolve to real files
+PASS  ending message came through the merge intact
+PASS  milestones events are well-formed
+PASS  password is read from config.js
+PASS  ui section survived the merge
+PASS  ui.story has 5 beats
+PASS  every story beat has text and a label
+PASS  ui.timerNote has 2 lines
+PASS  ui.timeUnits has 5 units
+PASS  ui plain strings are non-empty
+PASS  letter heading and sign-off present
+PASS  login placeholder and caption present
+PASS  no *asserted* love-confession wording anywhere in the config
+PASS  every line addressed to her is feminine
+PASS  every Dt.* the components read resolves (18 refs)
+
+20/20 passed
+
+> sara@8.3.8 check:game
+> node tools/check-game.mjs
+
+  ok    the overlay is sized against the visible height (dvh / svh, not a fixed px)
+  ok    the overlay is allowed to scroll (`overflow-y:auto`, not `hidden`)
+  ok    the board cannot overflow sideways (width:100% or max-width:100%)
+  ok    the board cannot push the controls off a short screen (clamp + dvh)
+  ok    dragging a line does not scroll the page (touch-action:none)
+  ok    the page behind cannot be rubber-banded while the game is open
+  ok    the board adapts when the url bar / rotation changes (ResizeObserver)
+  ok    multi-touch / stray pointer states are cleaned up (pointercancel)
+  ok    there is always a way out (a close control and the Escape key)
+  ok    the game does not open itself (no self-opening timer or observer)
+  ok    the only way in is window.SarahGame.open()
+  ok    the game closes itself when the last star is connected
+  ok    the win card paints ABOVE the stars (z-index compared, not assumed)
+  ok    the win card has an opaque backdrop, so the text always wins
+  ok    a stray pointer capture cannot throw on an element that rejects it
+  ok    nothing in the game navigates away from the page
+  ok    game-overlay.js parses OK
+  ok    5 stars on the board
+  ok    every star has a % position inside the board
+  ok    no two stars sit on top of each other
+  ok    game-overlay.js publishes window.SarahGame
+  ok    the bundle play button opens the overlay
+  ok    index.html loads game-overlay.js, versioned
+  ok    the removed game.html is not referenced anywhere
+
+the game overlay: all checks passed
+
+> sara@8.3.8 test:boot
+> node tools/boot-test.mjs
+
+PASS  sw.js carries a parseable APP_VERSION
+PASS  index.html has at least one ?v= token (found 7)
+PASS  every ?v= in index.html matches sw.js APP_VERSION
+PASS  package.json version matches sw.js APP_VERSION (8.3.8 vs 8.3.8)
+PASS  boots with zero runtime errors
+PASS  React mounted (#root populated)
+PASS  login screen rendered
+PASS  login text comes from config.js
+PASS  audio wired to the mp3
+PASS  correct password unlocks the site
+PASS  envelope title from config.js
+PASS  the envelope subtitle <p> matches config.js exactly
+PASS  envelope message revealed from config.js
+PASS  letter heading from config.js
+PASS  letter sign-off from config.js
+PASS  letter text uses the .letter-body size knob
+PASS  the letter has a scrollable card above it (letter-nav.js contract)
+PASS  index.html loads letter-nav.js deferred and versioned
+PASS  the letter-nav.js version matches sw.js APP_VERSION
+PASS  hero shows both names from couple.his / couple.hers
+PASS  hero subtitle from config.js
+PASS  gallery title from config.js
+PASS  gallery images from config.js
+PASS  milestones from config.js
+PASS  milestones note from config.js
+PASS  footer line matches config.js exactly
+PASS  header brand from config.js
+PASS  counter notes from config.js
+PASS  no empty <p> is left on screen
+PASS  game section from config.js
+PASS  counter units from config.js
+PASS  no love-confession wording on screen
+PASS  video falls back to media/video.mp4
+PASS  the full walk reached the hero
+PASS  config.js actually executed
+PASS  the probe really changed config.js
+PASS  config.js override beats the bundle default
+PASS  no errors with an overridden config
+PASS  a partial config keeps untouched bundle defaults
+PASS  a partial config still applies its own key
+PASS  a partial config causes no errors
+PASS  a broken config.js falls back to the bundle defaults
+PASS  a broken config.js is reported, not silent
+PASS  install.js leaves the DOM alone when it cannot install
+PASS  install button appears on android
+PASS  the native install dialog is opened
+PASS  install.js runs clean on android
+PASS  ios gets manual instructions
+PASS  a dismissed visitor is not asked again
+PASS  install.js runs clean on ios
+PASS  letter-nav.js runs with no letter on screen
+PASS  letter-nav.js hides itself with no letter open
+PASS  letter-nav.js appears when a scrollable letter is open
+PASS  the up button is hidden at the top of the letter
+PASS  the down button is available at the top
+PASS  the down button scrolls the letter
+PASS  letter-nav.js runs clean while the letter is open
+PASS  letter-nav.js disappears when the letter closes
+PASS  letter-nav.js runs clean after the letter closes
+PASS  love-meter.js does nothing while the hero screen is absent
+PASS  love-meter.js mounts once the hero screen is on
+PASS  love-meter.js runs clean on mount
+PASS  the meter title comes from config.js
+PASS  the meter badge comes from config.js
+PASS  the meter sits after the last hero section
+PASS  no hero section renders after the meter
+PASS  the card is a real <button> (keyboard + screen reader)
+PASS  the card is not yet pressed
+PASS  no number is shown before the press
+PASS  the bar is empty before the press
+PASS  the idle line comes from config.js
+PASS  the pressed card reports its state to assistive tech
+PASS  the verdict comes from config.js
+PASS  the result line is still not empty after the press
+PASS  the bar filled to the same number
+PASS  the reveal lines came from config.js
+PASS  love-meter.js runs clean after the press
+PASS  a second press changes nothing
+PASS  the overlay is built as soon as the script runs
+PASS  the overlay stays hidden while the hero screen is absent
+PASS  nothing is focused while the overlay is hidden
+PASS  the board has stars on it
+PASS  the game does NOT open by itself on the hero screen
+PASS  and the page behind is not locked
+PASS  and it has not stolen focus
+PASS  the hero screen has the play button
+PASS  pressing it opens the game
+PASS  opening it locks the page behind it
+PASS  the close control takes focus when it opens
+PASS  the game title comes from config.js
+PASS  the subtitle comes from config.js
+PASS  the board caption comes from config.js
+PASS  the win title comes from config.js
+PASS  the win message comes from config.js
+PASS  the close control is labelled for screen readers
+PASS  the dialog is announced as a modal
+PASS  the stars carry no number to read
+PASS  the stars are SVG, not emoji
+PASS  the counter starts on the first star
+PASS  exactly one star glows to begin with
+PASS  no star is marked done before the first connection
+PASS  a line is drawn while dragging
+PASS  dropping on the next star connects it
+PASS  the counter moved on
+PASS  the glow moved to the following star
+PASS  a connected star is marked done
+PASS  the win card is still hidden
+PASS  a wrong star is refused
+PASS  a wrong star does not advance the game
+PASS  a stray drag leaves no line behind
+PASS  tapping the glowing star connects it
+PASS  every star is connected when the game is won
+PASS  the counter reads full
+PASS  the win card appears
+PASS  the replay control appears
+PASS  the caption says she got there
+PASS  every star is lit once the game is won
+PASS  the game is still open right after the win (so the card can be read)
+PASS  a drag after the win does not throw
+PASS  and the finished board is inert
+PASS  the game closes itself after the win
+PASS  closing releases the page behind it
+PASS  the play button contract re-opens the game
+PASS  replay clears the lines
+PASS  replay resets the counter
+PASS  replay puts the glow back on the first star
+PASS  replay hides the win card
+PASS  close() hides the game
+PASS  close() releases the page again
+PASS  Escape closes the game
+PASS  clicking the backdrop closes the game
+PASS  game-overlay.js runs clean
+PASS  game-overlay.js logs no warnings
+
+133/133 passed

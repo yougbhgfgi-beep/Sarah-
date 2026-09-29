@@ -43,6 +43,21 @@ const pass = (m) => console.log(`  ok    ${m}`);
 /* ---------------------------------------------------------------- layout --
    the overlay is `position:fixed`, so a wrong height here is worse than on a
    page: there is nowhere to scroll to if the controls fall off the bottom. */
+/* Pull a z-index out of one CSS rule. Returns null when the rule declares none
+   — which is itself the answer for this check, since "no z-index" on a
+   positioned box is exactly what put the win card behind the stars. */
+function zIndexOf(sel) {
+  const esc = sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const m = html.match(new RegExp(esc + '\\s*\\{[^}]*z-index\\s*:\\s*(\\d+)'));
+  return m ? Number(m[1]) : null;
+}
+
+const zOrder = () => {
+  const win = zIndexOf('.gm-win');
+  const star = zIndexOf('.gm-star');
+  return win !== null && star !== null && win > star;
+};
+
 const RULES = [
   ['the overlay is sized against the visible height (dvh / svh, not a fixed px)',
    /#gameOverlay\s*\{[^}]*(dvh|svh)/.test(html)],
@@ -74,6 +89,13 @@ const RULES = [
    /window\.SarahGame\s*=\s*\{\s*open:\s*openOverlay/.test(js)],
   ['the game closes itself when the last star is connected',
    /winTimer\s*=\s*setTimeout/.test(js)],
+  /* The stars are z-index 2. A positioned box with no z-index of its own paints
+     BELOW them, so the win card ended up behind the constellation and the
+     message she had just earned was unreadable. Compared, not just asserted. */
+  ['the win card paints ABOVE the stars (z-index compared, not assumed)',
+   zOrder()],
+  ['the win card has an opaque backdrop, so the text always wins',
+   /\.gm-win\s*\{[^}]*background:\s*rgba\([^)]*,\s*(?:0\.9[5-9]|1)\s*\)/.test(html)],
   ['a stray pointer capture cannot throw on an element that rejects it',
    /try\s*\{[^}]*setPointerCapture[^}]*\}\s*catch/.test(js)],
 ];

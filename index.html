@@ -450,6 +450,10 @@
       .gm-win {
         position: absolute;
         inset: 0;
+        /* the stars sit at z-index 2 and this card has no stacking context of
+           its own, so without a z-index here the gold stars paint straight over
+           the message she just earned — and the win screen was unreadable. */
+        z-index: 3;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -457,7 +461,9 @@
         gap: 0.5rem;
         padding: 24px;
         text-align: center;
-        background: rgba(6, 3, 6, 0.9);
+        /* near-opaque on purpose: the constellation behind is nice to half-see,
+           but the text has to win */
+        background: rgba(6, 3, 6, 0.97);
         -webkit-backdrop-filter: blur(14px);
         backdrop-filter: blur(14px);
         animation: gm-in 0.35s ease-out;
@@ -528,13 +534,13 @@
     </script>
 
     <!-- ===== app ===== -->
-    <script src="./config.js?v=8.3.7"></script>
-    <script src="./install.js?v=8.3.7" defer></script>
-    <script src="./letter-nav.js?v=8.3.7" defer></script>
-    <script src="./love-meter.js?v=8.3.7" defer></script>
-    <script src="./game-overlay.js?v=8.3.7" defer></script>
-    <script type="module" crossorigin src="./assets/app.js?v=8.3.7"></script>
-    <link rel="stylesheet" crossorigin href="./assets/app.css?v=8.3.7" />
+    <script src="./config.js?v=8.3.8"></script>
+    <script src="./install.js?v=8.3.8" defer></script>
+    <script src="./letter-nav.js?v=8.3.8" defer></script>
+    <script src="./love-meter.js?v=8.3.8" defer></script>
+    <script src="./game-overlay.js?v=8.3.8" defer></script>
+    <script type="module" crossorigin src="./assets/app.js?v=8.3.8"></script>
+    <link rel="stylesheet" crossorigin href="./assets/app.css?v=8.3.8" />
   </head>
   <body>
     <div id="root"></div>
